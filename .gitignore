@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.turbo/
+.DS_Store
+*.vsix
+.env
+.env.*

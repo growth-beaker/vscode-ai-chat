@@ -1,0 +1,68 @@
+{
+  "name": "@vscode-ai-chat/react",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "React components for AI chat in VS Code webviews",
+  "license": "MIT",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./styles": "./dist/styles.css",
+    "./styles/theme": "./dist/vscode-theme.css"
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vscode-ai-chat/vscode-ai-chat.git",
+    "directory": "packages/react"
+  },
+  "keywords": [
+    "vscode",
+    "ai",
+    "chat",
+    "react",
+    "assistant-ui"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@assistant-ui/react": "^0.7.0",
+    "@vscode-ai-chat/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0 <20",
+    "react-dom": ">=18.0.0 <20"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "jsdom": "^26.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

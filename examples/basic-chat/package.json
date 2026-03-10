@@ -1,0 +1,59 @@
+{
+  "name": "basic-chat-example",
+  "displayName": "Basic AI Chat",
+  "description": "Example VS Code extension using @vscode-ai-chat",
+  "version": "0.0.0",
+  "private": true,
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:basicChat.chatView"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "basicChat",
+          "title": "AI Chat",
+          "icon": "$(comment-discussion)"
+        }
+      ]
+    },
+    "views": {
+      "basicChat": [
+        {
+          "type": "webview",
+          "id": "basicChat.chatView",
+          "name": "AI Chat"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "build:watch": "node esbuild.config.mjs --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^1.0.0",
+    "@vscode-ai-chat/core": "workspace:*",
+    "@vscode-ai-chat/host": "workspace:*",
+    "@vscode-ai-chat/react": "workspace:*",
+    "ai": "^4.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/vscode": "^1.96.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0"
+  }
+}

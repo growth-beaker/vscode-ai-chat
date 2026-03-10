@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Example Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/examples/basic-chat"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/examples/basic-chat/dist/**/*.js"
+      ],
+      "preLaunchTask": "build",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ]
+}

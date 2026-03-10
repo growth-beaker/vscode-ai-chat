@@ -1,0 +1,50 @@
+/*
+ * VS Code → assistant-ui CSS variable mapping.
+ * Dark, light, and high-contrast themes work automatically
+ * because VS Code updates its CSS custom properties on theme change.
+ */
+
+:root {
+  /* Colors */
+  --aui-foreground: var(--vscode-foreground);
+  --aui-background: var(--vscode-editor-background);
+  --aui-card: var(--vscode-editorWidget-background);
+  --aui-card-foreground: var(--vscode-editorWidget-foreground);
+  --aui-border: var(--vscode-editorWidget-border);
+  --aui-input: var(--vscode-input-background);
+  --aui-input-foreground: var(--vscode-input-foreground);
+  --aui-input-border: var(--vscode-input-border);
+  --aui-primary: var(--vscode-button-background);
+  --aui-primary-foreground: var(--vscode-button-foreground);
+  --aui-muted: var(--vscode-textBlockQuote-background);
+  --aui-muted-foreground: var(--vscode-descriptionForeground);
+  --aui-accent: var(--vscode-focusBorder);
+  --aui-ring: var(--vscode-focusBorder);
+  --aui-code-background: var(--vscode-textCodeBlock-background);
+  --aui-selection: var(--vscode-editor-selectionBackground);
+  --aui-link: var(--vscode-textLink-foreground);
+  --aui-destructive: var(--vscode-errorForeground);
+
+  /* Typography — match VS Code */
+  --aui-font-family: var(--vscode-font-family);
+  --aui-font-size: var(--vscode-font-size);
+  --aui-code-font-family: var(--vscode-editor-font-family);
+  --aui-code-font-size: var(--vscode-editor-font-size);
+}
+
+/* Base reset for webview */
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--aui-background);
+  color: var(--aui-foreground);
+  font-family: var(--aui-font-family);
+  font-size: var(--aui-font-size);
+}
+
+/* High-contrast border support */
+@media (forced-colors: active) {
+  :root {
+    --aui-border: var(--vscode-contrastBorder, var(--vscode-editorWidget-border));
+  }
+}

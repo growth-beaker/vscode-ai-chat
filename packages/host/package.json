@@ -1,0 +1,70 @@
+{
+  "name": "@vscode-ai-chat/host",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Extension-host SDK for AI chat in VS Code",
+  "license": "MIT",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vscode-ai-chat/vscode-ai-chat.git",
+    "directory": "packages/host"
+  },
+  "keywords": [
+    "vscode",
+    "ai",
+    "chat",
+    "extension",
+    "vercel-ai-sdk"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@vscode-ai-chat/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "@ai-sdk/mcp": ">=1.0.0",
+    "ai": ">=4.0.0",
+    "zod": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@ai-sdk/mcp": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@ai-sdk/mcp": "^1.0.25",
+    "@types/node": "^25.4.0",
+    "@types/vscode": "^1.96.0",
+    "ai": "^4.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0",
+    "zod": "^3.24.0"
+  }
+}
