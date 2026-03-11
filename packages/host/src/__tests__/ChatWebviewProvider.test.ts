@@ -1796,6 +1796,76 @@ describe("ChatWebviewProvider", () => {
       expect(hintEvents).toHaveLength(2);
       expect(hintEvents[1]!.hint).toBeNull();
     });
+
+    it("pushToolCall sends toolCall event", () => {
+      const manualProvider = new ChatWebviewProvider(createMockExtensionUri(), {});
+      const manualView = createMockWebviewView();
+      manualProvider.resolveWebviewView(manualView);
+
+      manualProvider.pushToolCall("tc1", "readFile", { path: "/foo.ts" });
+
+      const toolCallEvent = manualView.postedMessages.find(
+        (m) => (m as HostToWebviewEvent).type === "toolCall",
+      ) as HostToWebviewEvent & { type: "toolCall" };
+      expect(toolCallEvent).toBeDefined();
+      expect(toolCallEvent.toolCallId).toBe("tc1");
+      expect(toolCallEvent.toolName).toBe("readFile");
+      expect(toolCallEvent.args).toEqual({ path: "/foo.ts" });
+    });
+
+    it("pushToolResult sends toolResult event", () => {
+      const manualProvider = new ChatWebviewProvider(createMockExtensionUri(), {});
+      const manualView = createMockWebviewView();
+      manualProvider.resolveWebviewView(manualView);
+
+      manualProvider.pushToolResult("tc1", { content: "file contents" });
+
+      const toolResultEvent = manualView.postedMessages.find(
+        (m) => (m as HostToWebviewEvent).type === "toolResult",
+      ) as HostToWebviewEvent & { type: "toolResult" };
+      expect(toolResultEvent).toBeDefined();
+      expect(toolResultEvent.toolCallId).toBe("tc1");
+      expect(toolResultEvent.result).toEqual({ content: "file contents" });
+    });
+
+    it("requestToolApproval posts toolCall and resolves on approval", async () => {
+      const manualProvider = new ChatWebviewProvider(createMockExtensionUri(), {});
+      const manualView = createMockWebviewView();
+      manualProvider.resolveWebviewView(manualView);
+
+      const approvalPromise = manualProvider.requestToolApproval("tc1", "writeFile", { path: "/bar.ts" });
+
+      // Verify toolCall event was posted
+      const toolCallEvent = manualView.postedMessages.find(
+        (m) => (m as HostToWebviewEvent).type === "toolCall",
+      ) as HostToWebviewEvent & { type: "toolCall" };
+      expect(toolCallEvent).toBeDefined();
+      expect(toolCallEvent.toolName).toBe("writeFile");
+
+      // Simulate user approval from webview
+      manualView.simulateMessage({ type: "toolApproval", toolCallId: "tc1", approved: true });
+
+      const result = await approvalPromise;
+      expect(result).toEqual({ approved: true });
+    });
+
+    it("requestToolApproval resolves with denial and feedback", async () => {
+      const manualProvider = new ChatWebviewProvider(createMockExtensionUri(), {});
+      const manualView = createMockWebviewView();
+      manualProvider.resolveWebviewView(manualView);
+
+      const approvalPromise = manualProvider.requestToolApproval("tc2", "deleteFile", { path: "/baz.ts" });
+
+      manualView.simulateMessage({
+        type: "toolApproval",
+        toolCallId: "tc2",
+        approved: false,
+        feedback: "Too dangerous",
+      });
+
+      const result = await approvalPromise;
+      expect(result).toEqual({ approved: false, feedback: "Too dangerous" });
+    });
   });
 
   describe("onMessage hook", () => {

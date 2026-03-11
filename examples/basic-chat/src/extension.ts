@@ -139,6 +139,14 @@ export function activate(context: vscode.ExtensionContext) {
   // Classified errors:
   //   manualProvider.pushStreamError("Request cancelled", "cancel");
   //
+  // Tool rendering in manual mode:
+  //   manualProvider.pushToolCall("tc1", "readFile", { path: "/foo.ts" });
+  //   manualProvider.pushToolResult("tc1", { content: "..." });
+  //
+  // Human-in-the-loop tool approval:
+  //   const { approved } = await manualProvider.requestToolApproval("tc2", "writeFile", { path: "/bar.ts" });
+  //   if (approved) { /* execute */ }
+  //
   // Update system prompt at runtime:
   //   manualProvider.setSystemPrompt("New instructions for the next request");
   //

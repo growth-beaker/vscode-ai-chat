@@ -951,6 +951,56 @@ export class ChatWebviewProvider {
   }
 
   /**
+   * Post a tool call card to the webview (manual mode).
+   * Use this when your backend executes a tool and you want to show it in the chat.
+   */
+  pushToolCall(toolCallId: string, toolName: string, args: unknown): void {
+    this.postToWebview({
+      type: "toolCall",
+      threadId: this.activeThreadId,
+      toolCallId,
+      toolName,
+      args,
+    });
+  }
+
+  /**
+   * Post a tool result to the webview (manual mode).
+   * Removes the pending tool call card from the UI.
+   */
+  pushToolResult(toolCallId: string, result: unknown): void {
+    this.postToWebview({
+      type: "toolResult",
+      threadId: this.activeThreadId,
+      toolCallId,
+      result,
+    });
+  }
+
+  /**
+   * Post a tool call card and wait for user approval (manual mode).
+   * Returns a Promise that resolves when the user approves or denies.
+   * Use this for human-in-the-loop tool execution from external backends
+   * (e.g. Claude Agent SDK, MCP tool servers).
+   */
+  requestToolApproval(
+    toolCallId: string,
+    toolName: string,
+    args: unknown,
+  ): Promise<{ approved: boolean; feedback?: string }> {
+    this.postToWebview({
+      type: "toolCall",
+      threadId: this.activeThreadId,
+      toolCallId,
+      toolName,
+      args,
+    });
+    return new Promise((resolve) => {
+      this.pendingApprovals.set(toolCallId, { resolve });
+    });
+  }
+
+  /**
    * Post a transient progress indicator to the chat.
    * Progress messages don't persist in the thread history.
    */

@@ -1087,20 +1087,55 @@ provider.setInputHint(null);
 
 The hint text appears as the composer's placeholder, giving visual context that the extension is waiting for input.
 
+### Tool Rendering in Manual Mode
+
+When your backend executes tools, render the calls and results in the chat UI:
+
+```typescript
+// Show a tool call card
+provider.pushToolCall("tc1", "readFile", { path: "/src/main.ts" });
+
+// Later, show the result (removes the pending card)
+provider.pushToolResult("tc1", { content: "import { app } from './app';" });
+```
+
+For human-in-the-loop approval, use `requestToolApproval()` which posts the tool call card and returns a Promise that resolves when the user approves or denies:
+
+```typescript
+const { approved, feedback } = await provider.requestToolApproval(
+  "tc2", "writeFile", { path: "/src/main.ts", content: "..." }
+);
+if (approved) {
+  await fs.writeFile(path, content);
+  provider.pushToolResult("tc2", { status: "written" });
+} else {
+  provider.pushToolResult("tc2", { status: "denied", feedback });
+}
+```
+
 ### Example: SDK Bridge Integration
 
 ```typescript
 // Subscribe to your SDK's message stream
-sdkBridge.subscribe((event) => {
+sdkBridge.subscribe(async (event) => {
   if (event.type === "start") {
     provider.pushStreamStart();
   } else if (event.type === "text") {
     provider.pushText(event.text);
+  } else if (event.type === "tool_use") {
+    // Show tool call, optionally require approval
+    if (event.requiresApproval) {
+      const { approved } = await provider.requestToolApproval(event.id, event.name, event.args);
+      if (!approved) return sdkBridge.denyTool(event.id);
+    } else {
+      provider.pushToolCall(event.id, event.name, event.args);
+    }
+  } else if (event.type === "tool_result") {
+    provider.pushToolResult(event.toolCallId, event.result);
   } else if (event.type === "end") {
     provider.pushStreamEnd();
   } else if (event.type === "error") {
-    const code = event.cancelled ? "cancel" : "network";
-    provider.pushStreamError(event.message, code);
+    provider.pushStreamError(event.message, event.cancelled ? "cancel" : "network");
   } else if (event.type === "waiting") {
     provider.setInputHint(event.prompt);
   }
@@ -1588,6 +1623,9 @@ new ChatWebviewProvider(extensionUri: vscode.Uri, config: ChatProviderConfig)
 | `pushStreamEnd(usage?)` | `void` | End the current manual stream |
 | `pushStreamError(error, code?)` | `void` | Signal an error in the current manual stream (optional classification code) |
 | `setInputHint(hint)` | `void` | Set composer placeholder text (pass `null` to clear) |
+| `pushToolCall(toolCallId, toolName, args)` | `void` | Post a tool call card to the webview (manual mode) |
+| `pushToolResult(toolCallId, result)` | `void` | Post a tool result to the webview (manual mode) |
+| `requestToolApproval(toolCallId, toolName, args)` | `Promise<{ approved, feedback? }>` | Post tool call + await user approval (manual mode) |
 | `pushProgress(text)` | `void` | Post a transient progress indicator |
 | `setSystemPrompt(prompt)` | `void` | Update the system prompt at runtime (takes effect on next request) |
 | `sendUserMessage(text)` | `void` | Programmatically send a user message |
