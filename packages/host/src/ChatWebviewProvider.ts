@@ -14,7 +14,7 @@ import { generateHtml, generateNonce } from "./html.js";
 import { StreamingChatHandler } from "./streaming.js";
 import { createStorage } from "./storage/index.js";
 import { MCPManager } from "./mcp.js";
-import type { ChatProviderConfig, ChatTemplate, SlashCommandHandler, SlashCommandContext } from "./types.js";
+import type { ChatProviderConfig, ChatTemplate, SlashCommandHandler, SlashCommandContext, OnMessageResult } from "./types.js";
 import type { ChatContentPart, TokenUsage } from "@growthbeaker/ai-chat-core";
 
 /**
@@ -295,25 +295,38 @@ export class ChatWebviewProvider {
     thread.messages.push(message);
     thread.updatedAt = new Date();
 
-    // In manual mode (no model), just persist and notify — extension handles streaming
-    if (!this.activeModel) {
-      await this.persistThread(thread);
-      this.postThreadList();
-      return;
-    }
-
-    // Check onMessage hook before routing to LLM
+    // Check onMessage hook before routing to LLM (runs in both managed and manual mode)
     if (this.config.onMessage) {
       const userText = message.content
         .filter((p): p is { type: "text"; text: string } => p.type === "text")
         .map((p) => p.text)
         .join("\n");
-      const result = await this.config.onMessage(userText, thread);
+      let result: OnMessageResult;
+      try {
+        result = await this.config.onMessage(userText, thread);
+      } catch (error) {
+        console.error("[vscode-ai-chat] onMessage callback error:", error);
+        // Persist the user message so it's not lost
+        await this.persistThread(thread);
+        this.postToWebview({
+          type: "streamError",
+          threadId: thread.id,
+          error: `onMessage error: ${error instanceof Error ? error.message : String(error)}`,
+        });
+        return;
+      }
       if (result !== "passthrough") {
         await this.persistThread(thread);
         this.postThreadList();
         return;
       }
+    }
+
+    // In manual mode (no model), just persist and notify — extension handles streaming
+    if (!this.activeModel) {
+      await this.persistThread(thread);
+      this.postThreadList();
+      return;
     }
 
     try {
@@ -862,6 +875,7 @@ export class ChatWebviewProvider {
   // your own LLM backend, SDK bridge, or any other async data source.
 
   private manualStreamingMessageId: string | null = null;
+  private manualStreamingContent: ChatContentPart[] = [];
 
   /**
    * Begin a new assistant message stream.
@@ -871,6 +885,7 @@ export class ChatWebviewProvider {
   pushStreamStart(): string {
     const messageId = `manual-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     this.manualStreamingMessageId = messageId;
+    this.manualStreamingContent = [];
     this.postToWebview({
       type: "streamStart",
       threadId: this.activeThreadId,
@@ -897,6 +912,18 @@ export class ChatWebviewProvider {
       console.warn("[vscode-ai-chat] pushStreamDelta called without an active stream. Call pushStreamStart() first.");
       return;
     }
+    // Accumulate content for persistence
+    // Merge consecutive text deltas (same as webview-side logic)
+    if (delta.type === "text" && this.manualStreamingContent.length > 0) {
+      const last = this.manualStreamingContent[this.manualStreamingContent.length - 1]!;
+      if (last.type === "text") {
+        last.text += delta.text;
+      } else {
+        this.manualStreamingContent.push({ ...delta });
+      }
+    } else {
+      this.manualStreamingContent.push({ ...delta });
+    }
     this.postToWebview({
       type: "streamDelta",
       threadId: this.activeThreadId,
@@ -913,6 +940,19 @@ export class ChatWebviewProvider {
       console.warn("[vscode-ai-chat] pushStreamEnd called without an active stream.");
       return;
     }
+    // Persist the completed assistant message to the thread
+    const thread = this.getCurrentThread();
+    const assistantMessage: ChatMessage = {
+      id: this.manualStreamingMessageId,
+      role: "assistant",
+      content: this.manualStreamingContent,
+      createdAt: new Date(),
+    };
+    thread.messages.push(assistantMessage);
+    thread.updatedAt = new Date();
+    this.persistThread(thread).catch((err) => {
+      console.error("[vscode-ai-chat] Failed to persist manual stream message:", err);
+    });
     this.postToWebview({
       type: "streamEnd",
       threadId: this.activeThreadId,
@@ -920,6 +960,7 @@ export class ChatWebviewProvider {
       usage,
     });
     this.manualStreamingMessageId = null;
+    this.manualStreamingContent = [];
   }
 
   /**
@@ -928,6 +969,22 @@ export class ChatWebviewProvider {
    * so the webview can distinguish error types without parsing the message string.
    */
   pushStreamError(error: string, code?: string): void {
+    // Persist partial content with error so it survives thread switches/reloads
+    if (this.manualStreamingMessageId) {
+      this.manualStreamingContent.push({ type: "text", text: `\n\n**Error:** ${error}` });
+      const thread = this.getCurrentThread();
+      const assistantMessage: ChatMessage = {
+        id: this.manualStreamingMessageId,
+        role: "assistant",
+        content: this.manualStreamingContent,
+        createdAt: new Date(),
+      };
+      thread.messages.push(assistantMessage);
+      thread.updatedAt = new Date();
+      this.persistThread(thread).catch((err) => {
+        console.error("[vscode-ai-chat] Failed to persist manual stream error:", err);
+      });
+    }
     this.postToWebview({
       type: "streamError",
       threadId: this.activeThreadId,
@@ -935,6 +992,7 @@ export class ChatWebviewProvider {
       code,
     });
     this.manualStreamingMessageId = null;
+    this.manualStreamingContent = [];
   }
 
   /**

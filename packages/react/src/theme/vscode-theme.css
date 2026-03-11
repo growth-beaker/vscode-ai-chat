@@ -51,6 +51,47 @@ body {
   display: none;
 }
 
+/* ── Message content — tighter spacing for chat in narrow sidebar ───── */
+.aui-user-message-content,
+.aui-assistant-message-content {
+  line-height: 1.4;
+}
+
+/* Override markdown paragraph spacing from assistant-ui (1.75rem / 1.25rem is too large) */
+.aui-md-p {
+  line-height: 1.4;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Override markdown heading sizes for narrow sidebar chat */
+.aui-md-h1 {
+  font-size: 1.25rem;
+  line-height: 1.3;
+  margin-bottom: 0.75rem;
+  margin-top: 1rem;
+}
+.aui-md-h2 {
+  font-size: 1.1rem;
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+  margin-top: 0.75rem;
+}
+.aui-md-h3 {
+  font-size: 1rem;
+  line-height: 1.3;
+  margin-bottom: 0.4rem;
+  margin-top: 0.6rem;
+}
+.aui-md-h4,
+.aui-md-h5,
+.aui-md-h6 {
+  font-size: 0.95rem;
+  line-height: 1.3;
+  margin-bottom: 0.3rem;
+  margin-top: 0.5rem;
+}
+
 /* ── Thread layout overrides (full width in narrow sidebar) ────────── */
 .aui-thread-viewport {
   align-items: stretch;
@@ -566,8 +607,34 @@ body {
   font-size: 0.85em;
 }
 
-/* ── Streaming indicator — own line, reset all inherited markdown styles */
+/* ── Streaming indicator — own line, reset all inherited markdown styles ──
+ *
+ * makeMarkdownText uses "aui-md-running" (not "aui-text-running").
+ * The library places ::after on the last child element (p, li, code, etc.)
+ * via :where() selectors (zero specificity), so any class-level selector wins.
+ */
+
+/* Fallback for plain text (non-markdown) content parts */
 .aui-text-running::after {
+  display: block;
+  margin-left: 0;
+  margin-top: 0.5rem;
+  font-size: 10px;
+  font-weight: normal;
+  font-style: normal;
+  font-family: system-ui, sans-serif;
+  line-height: 1;
+  text-decoration: none;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* Markdown running indicator — move to own line for all child types */
+.aui-md-running:empty::after,
+.aui-md-running > :last-child::after,
+.aui-md-running > pre:last-child code::after,
+.aui-md-running > ol:last-child li:last-child::after,
+.aui-md-running > ul:last-child li:last-child::after {
   display: block;
   margin-left: 0;
   margin-top: 0.5rem;

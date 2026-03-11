@@ -1,5 +1,11 @@
 # @growthbeaker/ai-chat-host
 
+## 1.0.1
+
+### Patch Changes
+
+- Fix onMessage unreachable in manual mode, persist manual-mode streaming messages, add error handling for onMessage failures, and tighten chat line-height/paragraph spacing
+
 ## 1.0.0
 
 ### Major Changes

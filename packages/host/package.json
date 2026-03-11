@@ -1,6 +1,6 @@
 {
   "name": "@growthbeaker/ai-chat-host",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Extension-host SDK for AI chat in VS Code",
   "license": "MIT",
