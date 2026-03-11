@@ -57,6 +57,7 @@ export function ChatPanel({
     exportThread,
     dropFiles,
     lastUsage,
+    inputHint,
     slashCommands,
     sendSlashCommand,
     requestContextMention,
@@ -80,8 +81,9 @@ export function ChatPanel({
       onModelSwitch: showModelSelector ? switchModel : undefined,
       usage: showTokenUsage ? lastUsage : undefined,
       onExport: showExport ? exportThread : undefined,
+      inputHint,
     }),
-    [enableFileDrop, showModelSelector, models, chatConfig.activeModel, switchModel, showTokenUsage, lastUsage, showExport, exportThread],
+    [enableFileDrop, showModelSelector, models, chatConfig.activeModel, switchModel, showTokenUsage, lastUsage, showExport, exportThread, inputHint],
   );
 
   const assistantMessageConfig = useMemo(

@@ -87,6 +87,10 @@ export function activate(context: vscode.ExtensionContext) {
       }
       return "passthrough";
     },
+    // Observe tool results (e.g. track which files were modified)
+    onToolResult: (toolName, args, result) => {
+      console.log(`[basic-chat] Tool ${toolName} completed:`, { args, result });
+    },
     // Custom cancellation logic
     onCancel: () => {
       console.log("[basic-chat] Generation cancelled by user");
@@ -124,9 +128,19 @@ export function activate(context: vscode.ExtensionContext) {
   // Example: manually stream a response from your own backend
   //
   //   const messageId = manualProvider.pushStreamStart();
-  //   manualProvider.pushStreamDelta({ type: "text", text: "Working on it..." });
-  //   manualProvider.pushStreamDelta({ type: "text", text: " Done!" });
+  //   manualProvider.pushText("Working on it...");
+  //   manualProvider.pushText(" Done!");
   //   manualProvider.pushStreamEnd();
+  //
+  // Signal what the user should do next:
+  //   manualProvider.setInputHint("Describe what to change…");
+  //   manualProvider.setInputHint(null); // clear
+  //
+  // Classified errors:
+  //   manualProvider.pushStreamError("Request cancelled", "cancel");
+  //
+  // Update system prompt at runtime:
+  //   manualProvider.setSystemPrompt("New instructions for the next request");
   //
   // Or inject a full message:
   //   manualProvider.postSystemMessage([{ type: "text", text: "Agent completed." }]);

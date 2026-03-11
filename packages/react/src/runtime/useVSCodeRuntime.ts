@@ -68,6 +68,10 @@ export interface UseVSCodeRuntimeReturn {
   mentionItems: Array<{ label: string; description?: string; value: string }>;
   progressText: string | null;
   lastUsage: { promptTokens: number; completionTokens: number; totalTokens: number } | null;
+  /** Placeholder hint for the composer input, set by the host via setInputHint() */
+  inputHint: string | null;
+  /** Last stream error with optional classification code */
+  lastError: { message: string; code?: string } | null;
 }
 
 export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}): UseVSCodeRuntimeReturn {
@@ -99,6 +103,12 @@ export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}): UseVSCo
 
   // Token usage from last response
   const [lastUsage, setLastUsage] = useState<{ promptTokens: number; completionTokens: number; totalTokens: number } | null>(null);
+
+  // Input hint from the host (placeholder text for composer)
+  const [inputHint, setInputHint] = useState<string | null>(null);
+
+  // Last stream error with optional classification
+  const [lastError, setLastError] = useState<{ message: string; code?: string } | null>(null);
 
   const vscodeApiRef = useRef<VSCodeApi | null>(options.vscodeApi ?? getVSCodeApi());
 
@@ -167,6 +177,7 @@ export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}): UseVSCo
       }
       case "streamError": {
         setIsRunning(false);
+        setLastError({ message: event.error, code: event.code });
         // Append error text to the streaming message so the user can see what went wrong
         if (streamingMessageRef.current) {
           const errorMsg = streamingMessageRef.current;
@@ -216,6 +227,10 @@ export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}): UseVSCo
       }
       case "contextMentionResult": {
         setMentionItems(event.items);
+        break;
+      }
+      case "inputHint": {
+        setInputHint(event.hint);
         break;
       }
     }
@@ -376,5 +391,7 @@ export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}): UseVSCo
     mentionItems,
     progressText,
     lastUsage,
+    inputHint,
+    lastError,
   };
 }

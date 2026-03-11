@@ -65,6 +65,7 @@ export class ChatWebviewProvider {
   private activeTemplate: ChatTemplate | null = null;
   private pendingUserActions = new Map<string, { resolve: (result: unknown) => void }>();
   private slashCommands = new Map<string, SlashCommandHandler>();
+  private systemPrompt: string | undefined;
 
   constructor(
     private readonly extensionUri: unknown,
@@ -74,6 +75,7 @@ export class ChatWebviewProvider {
     this.threads.set(initial.id, initial);
     this.activeThreadId = initial.id;
     this.activeModel = config.model;
+    this.systemPrompt = config.system;
     this.storage = config.persistence ? createStorage(config.persistence) : null;
     if (config.mcpServers && config.mcpServers.length > 0) {
       this.mcpManager = new MCPManager();
@@ -323,7 +325,7 @@ export class ChatWebviewProvider {
       if (tools && this.config.requiresApproval) {
         tools = this.wrapToolsForApproval(tools, thread.id);
       }
-      const system = this.activeTemplate?.systemPrompt ?? this.config.system;
+      const system = this.activeTemplate?.systemPrompt ?? this.systemPrompt;
       console.log("[vscode-ai-chat] Calling streamText with model:", (this.activeModel as Record<string, unknown>).modelId, "system prompt length:", system?.length ?? 0);
       const assistantMessage = await this.streamingHandler.handleSendMessage(
         thread.messages,
@@ -332,6 +334,7 @@ export class ChatWebviewProvider {
           system,
           tools,
           maxSteps: this.config.maxSteps,
+          onToolResult: this.config.onToolResult,
         },
         (event) => {
           console.log("[vscode-ai-chat] Posting to webview:", event.type);
@@ -489,7 +492,7 @@ export class ChatWebviewProvider {
       if (tools && this.config.requiresApproval) {
         tools = this.wrapToolsForApproval(tools, thread.id);
       }
-      const system = this.activeTemplate?.systemPrompt ?? this.config.system;
+      const system = this.activeTemplate?.systemPrompt ?? this.systemPrompt;
       const assistantMessage = await this.streamingHandler.handleSendMessage(
         thread.messages,
         {
@@ -497,6 +500,7 @@ export class ChatWebviewProvider {
           system,
           tools,
           maxSteps: this.config.maxSteps,
+          onToolResult: this.config.onToolResult,
         },
         (event) => this.postToWebview(event),
         thread.id,
@@ -876,8 +880,17 @@ export class ChatWebviewProvider {
   }
 
   /**
+   * Convenience shorthand for pushing a text delta.
+   * Equivalent to pushStreamDelta({ type: "text", text }).
+   */
+  pushText(text: string): void {
+    this.pushStreamDelta({ type: "text", text });
+  }
+
+  /**
    * Push a content delta to the current manual stream.
-   * Typically called with { type: "text", text: "..." } for text chunks.
+   * Typically called with { type: "text", text: "..." } for text chunks,
+   * or use the pushText() shorthand for plain text.
    */
   pushStreamDelta(delta: ChatContentPart): void {
     if (!this.manualStreamingMessageId) {
@@ -911,14 +924,30 @@ export class ChatWebviewProvider {
 
   /**
    * Signal an error in the current manual stream.
+   * Optionally provide a classification code (e.g. "cancel", "auth", "rate-limit", "network")
+   * so the webview can distinguish error types without parsing the message string.
    */
-  pushStreamError(error: string): void {
+  pushStreamError(error: string, code?: string): void {
     this.postToWebview({
       type: "streamError",
       threadId: this.activeThreadId,
       error,
+      code,
     });
     this.manualStreamingMessageId = null;
+  }
+
+  /**
+   * Set a hint/placeholder in the composer input.
+   * Use this after pushStreamEnd() to signal what the user should do next
+   * (e.g. "Approve the changes above…" or "Provide your API key…").
+   * Pass null to clear the hint and restore the default placeholder.
+   */
+  setInputHint(hint: string | null): void {
+    this.postToWebview({
+      type: "inputHint",
+      hint,
+    });
   }
 
   /**
@@ -935,6 +964,15 @@ export class ChatWebviewProvider {
   }
 
   // ── Programmatic message & command API ──────────────────────────
+
+  /**
+   * Update the system prompt at runtime.
+   * Takes effect on the next LLM request (does not affect in-flight streams).
+   * Template system prompts still take priority when a template is active.
+   */
+  setSystemPrompt(prompt: string): void {
+    this.systemPrompt = prompt;
+  }
 
   /**
    * Programmatically send a user message as if the user typed it.

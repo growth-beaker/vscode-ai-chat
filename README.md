@@ -332,6 +332,9 @@ interface ChatProviderConfig {
 
   /** Cancel callback — runs custom logic when the user cancels generation */
   onCancel?: () => void | Promise<void>;
+
+  /** Tool result callback — fires after each tool execution completes */
+  onToolResult?: (toolName: string, args: unknown, result: unknown) => void | Promise<void>;
 }
 ```
 
@@ -594,6 +597,24 @@ When `maxSteps` > 1 (default is 5), the LLM can call tools, inspect results, and
 3. Analyze the code and provide a response
 
 All of this happens in a single streaming response.
+
+### Observing Tool Results
+
+Use `onToolResult` to observe tool executions without wrapping each tool. This is useful for tracking side effects, updating external state, or triggering follow-up actions:
+
+```typescript
+const provider = new ChatWebviewProvider(context.extensionUri, {
+  model: anthropic("claude-sonnet-4-5"),
+  tools: { readFile, writeFile, listFiles },
+  onToolResult: (toolName, args, result) => {
+    if (toolName === "writeFile") {
+      modifiedFiles.add((args as { path: string }).path);
+    }
+  },
+});
+```
+
+The callback fires after each tool execution completes and the result is streamed to the webview. Errors thrown in the callback are logged but do not interrupt the LLM stream.
 
 ---
 
@@ -1030,19 +1051,41 @@ Use the manual streaming API to push content to the chat UI:
 // Start a new assistant message stream
 const messageId = provider.pushStreamStart();
 
-// Push content chunks (text, tool-calls, tool-results, etc.)
-provider.pushStreamDelta({ type: "text", text: "Analyzing your code..." });
-provider.pushStreamDelta({ type: "text", text: " Found 3 issues." });
+// Push text chunks (convenience shorthand)
+provider.pushText("Analyzing your code...");
+provider.pushText(" Found 3 issues.");
+
+// Or push structured content parts (tool-calls, images, data, etc.)
+provider.pushStreamDelta({ type: "tool-call", toolCallId: "tc1", toolName: "lint", args: {} });
 
 // End the stream (optionally include token usage)
 provider.pushStreamEnd({ promptTokens: 100, completionTokens: 50, totalTokens: 150 });
 ```
 
-For errors, use `pushStreamError()`:
+For errors, use `pushStreamError()` with an optional classification code:
 
 ```typescript
+// Simple error
 provider.pushStreamError("Connection to agent lost. Please try again.");
+
+// Classified error — lets the webview distinguish cancel from real errors
+provider.pushStreamError("Request cancelled by user", "cancel");
+provider.pushStreamError("Rate limited, try again later", "rate-limit");
 ```
+
+### Input Hints
+
+After a stream ends, signal what the user should do next with `setInputHint()`:
+
+```typescript
+provider.pushStreamEnd();
+provider.setInputHint("Approve the changes above, or describe what to change…");
+
+// Later, clear the hint
+provider.setInputHint(null);
+```
+
+The hint text appears as the composer's placeholder, giving visual context that the extension is waiting for input.
 
 ### Example: SDK Bridge Integration
 
@@ -1052,11 +1095,14 @@ sdkBridge.subscribe((event) => {
   if (event.type === "start") {
     provider.pushStreamStart();
   } else if (event.type === "text") {
-    provider.pushStreamDelta({ type: "text", text: event.text });
+    provider.pushText(event.text);
   } else if (event.type === "end") {
     provider.pushStreamEnd();
   } else if (event.type === "error") {
-    provider.pushStreamError(event.message);
+    const code = event.cancelled ? "cancel" : "network";
+    provider.pushStreamError(event.message, code);
+  } else if (event.type === "waiting") {
+    provider.setInputHint(event.prompt);
   }
 });
 ```
@@ -1188,6 +1234,37 @@ provider.executeSlashCommand("run", "my-workflow");
 ```
 
 In managed mode, `sendUserMessage()` triggers LLM streaming. In manual mode, the message is added to the thread for your extension to handle.
+
+### Dynamic System Prompt
+
+Update the system prompt at runtime without creating a template:
+
+```typescript
+// Change the system prompt based on user selection
+provider.setSystemPrompt(`You are a code reviewer. Focus on: ${selectedRules.join(", ")}`);
+```
+
+Takes effect on the next LLM request. Template system prompts still take priority when a template is active.
+
+### Pre-Populated Threads
+
+Create threads with seed messages for onboarding or context setup:
+
+```typescript
+import { createThread } from "@vscode-ai-chat/core";
+
+const thread = createThread({
+  title: "Code Review Session",
+  messages: [
+    {
+      id: "welcome-1",
+      role: "assistant",
+      content: [{ type: "text", text: "I'll review your changes. Paste a diff or describe what you'd like me to look at." }],
+      createdAt: new Date(),
+    },
+  ],
+});
+```
 
 ---
 
@@ -1506,10 +1583,13 @@ new ChatWebviewProvider(extensionUri: vscode.Uri, config: ChatProviderConfig)
 | `registerSlashCommand(handler)` | `void` | Register a slash command at runtime |
 | `getSlashCommands()` | `SlashCommandHandler[]` | Get all registered slash commands |
 | `pushStreamStart()` | `string` | Begin a manual assistant stream; returns the message ID |
+| `pushText(text)` | `void` | Convenience shorthand for `pushStreamDelta({ type: "text", text })` |
 | `pushStreamDelta(delta)` | `void` | Push a content delta to the current manual stream |
 | `pushStreamEnd(usage?)` | `void` | End the current manual stream |
-| `pushStreamError(error)` | `void` | Signal an error in the current manual stream |
+| `pushStreamError(error, code?)` | `void` | Signal an error in the current manual stream (optional classification code) |
+| `setInputHint(hint)` | `void` | Set composer placeholder text (pass `null` to clear) |
 | `pushProgress(text)` | `void` | Post a transient progress indicator |
+| `setSystemPrompt(prompt)` | `void` | Update the system prompt at runtime (takes effect on next request) |
 | `sendUserMessage(text)` | `void` | Programmatically send a user message |
 | `executeSlashCommand(name, args?)` | `void` | Programmatically execute a slash command |
 | `dispose()` | `void` | Clean up resources (cancel streaming, close MCP, dispose subscriptions) |
@@ -1608,7 +1688,7 @@ interface ThreadStorage {
 | Export | Description |
 |---|---|
 | `generateId()` | Generate a unique message/thread ID |
-| `createThread()` | Create a new empty `ChatThread` |
+| `createThread(idOrOptions?)` | Create a `ChatThread`, optionally pre-populated with messages, title, and metadata |
 | `toThreadSummary(thread)` | Convert a `ChatThread` to a `ThreadSummary` |
 | `createWebviewSender(postMessage)` | Create a typed sender for webview-to-host events |
 | `createHostSender(postMessage)` | Create a typed sender for host-to-webview events |

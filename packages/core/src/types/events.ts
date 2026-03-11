@@ -154,6 +154,8 @@ export interface StreamErrorEvent {
   type: "streamError";
   threadId: string;
   error: string;
+  /** Optional error classification (e.g. "cancel", "auth", "rate-limit", "network") */
+  code?: string;
 }
 
 export interface StreamProgressEvent {
@@ -217,6 +219,12 @@ export interface SlashCommandListEvent {
   }>;
 }
 
+export interface InputHintEvent {
+  type: "inputHint";
+  /** Placeholder text to show in the composer, or null to clear */
+  hint: string | null;
+}
+
 /** All events sent from extension host to webview */
 export type HostToWebviewEvent =
   | StreamStartEvent
@@ -231,7 +239,8 @@ export type HostToWebviewEvent =
   | TemplateListEvent
   | ConfigUpdateEvent
   | ContextMentionResultEvent
-  | SlashCommandListEvent;
+  | SlashCommandListEvent
+  | InputHintEvent;
 
 // ── Union ───────────────────────────────────────────────────────────
 

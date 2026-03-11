@@ -63,6 +63,7 @@ export type {
   ConfigUpdateEvent,
   ContextMentionResultEvent,
   SlashCommandListEvent,
+  InputHintEvent,
   // Union
   PostMessageEvent,
 } from "./types/events.js";
@@ -78,3 +79,4 @@ export { exportThreadAsJSON, exportThreadAsMarkdown } from "./export.js";
 
 // Utilities
 export { generateId, createThread, toThreadSummary } from "./utils.js";
+export type { CreateThreadOptions } from "./utils.js";

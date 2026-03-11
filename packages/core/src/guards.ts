@@ -34,6 +34,7 @@ const HOST_TO_WEBVIEW_TYPES = new Set([
   "configUpdate",
   "contextMentionResult",
   "slashCommandList",
+  "inputHint",
 ]);
 
 /** Check if an unknown value is a valid PostMessageEvent */

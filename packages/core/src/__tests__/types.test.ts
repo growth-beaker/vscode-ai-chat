@@ -97,6 +97,8 @@ describe("type guards", () => {
         { type: "contextMentionResult", mentionType: "file", items: [] },
         { type: "slashCommandList", commands: [{ name: "help", description: "Show help" }] },
         { type: "streamProgress", threadId: "t1", text: "Loading..." },
+        { type: "inputHint", hint: "Approve the changes above…" },
+        { type: "streamError", threadId: "t1", error: "cancelled", code: "cancel" },
       ];
       for (const event of events) {
         expect(isHostToWebviewEvent(event)).toBe(true);
@@ -212,6 +214,27 @@ describe("createThread", () => {
     const t1 = createThread();
     const t2 = createThread();
     expect(t1.id).not.toBe(t2.id);
+  });
+
+  it("accepts options object with seed messages", () => {
+    const messages: ChatMessage[] = [
+      { id: "m1", role: "assistant", content: [{ type: "text", text: "Welcome!" }] },
+    ];
+    const thread = createThread({ messages, title: "Onboarding" });
+    expect(thread.messages).toEqual(messages);
+    expect(thread.title).toBe("Onboarding");
+    expect(thread.id).toBeDefined();
+  });
+
+  it("accepts options object with id", () => {
+    const thread = createThread({ id: "my-id" });
+    expect(thread.id).toBe("my-id");
+    expect(thread.messages).toEqual([]);
+  });
+
+  it("accepts options object with metadata", () => {
+    const thread = createThread({ metadata: { source: "import" } });
+    expect(thread.metadata).toEqual({ source: "import" });
   });
 });
 

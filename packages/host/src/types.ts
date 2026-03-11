@@ -117,4 +117,12 @@ export interface ChatProviderConfig {
    * The built-in LLM abort still runs automatically when a model is configured.
    */
   onCancel?: () => void | Promise<void>;
+  /**
+   * Tool result callback — called after each tool execution completes.
+   * Use this to observe tool results for side effects (tracking modified files,
+   * updating external state, triggering follow-up actions) without wrapping tools.
+   * Runs after the result is streamed to the webview. Errors thrown here are logged
+   * but do not interrupt the LLM stream.
+   */
+  onToolResult?: (toolName: string, args: unknown, result: unknown) => void | Promise<void>;
 }

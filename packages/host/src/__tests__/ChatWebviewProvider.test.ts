@@ -1736,6 +1736,66 @@ describe("ChatWebviewProvider", () => {
       expect(progressEvent).toBeDefined();
       expect(progressEvent.text).toBe("Loading...");
     });
+
+    it("pushText is a shorthand for pushStreamDelta with text", () => {
+      const manualProvider = new ChatWebviewProvider(createMockExtensionUri(), {});
+      const manualView = createMockWebviewView();
+      manualProvider.resolveWebviewView(manualView);
+
+      manualProvider.pushStreamStart();
+      manualProvider.pushText("Hello world");
+
+      const deltaEvent = manualView.postedMessages.find(
+        (m) => (m as HostToWebviewEvent).type === "streamDelta",
+      ) as HostToWebviewEvent & { type: "streamDelta" };
+      expect(deltaEvent).toBeDefined();
+      expect(deltaEvent.delta).toEqual({ type: "text", text: "Hello world" });
+    });
+
+    it("pushStreamError includes optional error code", () => {
+      const manualProvider = new ChatWebviewProvider(createMockExtensionUri(), {});
+      const manualView = createMockWebviewView();
+      manualProvider.resolveWebviewView(manualView);
+
+      manualProvider.pushStreamStart();
+      manualProvider.pushStreamError("Request cancelled", "cancel");
+
+      const errorEvent = manualView.postedMessages.find(
+        (m) => (m as HostToWebviewEvent).type === "streamError",
+      ) as HostToWebviewEvent & { type: "streamError" };
+      expect(errorEvent).toBeDefined();
+      expect(errorEvent.error).toBe("Request cancelled");
+      expect(errorEvent.code).toBe("cancel");
+    });
+
+    it("setInputHint sends inputHint event", () => {
+      const manualProvider = new ChatWebviewProvider(createMockExtensionUri(), {});
+      const manualView = createMockWebviewView();
+      manualProvider.resolveWebviewView(manualView);
+
+      manualProvider.setInputHint("Approve the changes above…");
+
+      const hintEvent = manualView.postedMessages.find(
+        (m) => (m as HostToWebviewEvent).type === "inputHint",
+      ) as HostToWebviewEvent & { type: "inputHint" };
+      expect(hintEvent).toBeDefined();
+      expect(hintEvent.hint).toBe("Approve the changes above…");
+    });
+
+    it("setInputHint(null) clears the hint", () => {
+      const manualProvider = new ChatWebviewProvider(createMockExtensionUri(), {});
+      const manualView = createMockWebviewView();
+      manualProvider.resolveWebviewView(manualView);
+
+      manualProvider.setInputHint("Do something");
+      manualProvider.setInputHint(null);
+
+      const hintEvents = manualView.postedMessages.filter(
+        (m) => (m as HostToWebviewEvent).type === "inputHint",
+      ) as Array<HostToWebviewEvent & { type: "inputHint" }>;
+      expect(hintEvents).toHaveLength(2);
+      expect(hintEvents[1]!.hint).toBeNull();
+    });
   });
 
   describe("onMessage hook", () => {
@@ -1822,6 +1882,20 @@ describe("ChatWebviewProvider", () => {
       });
     });
 
+    it("setSystemPrompt updates the system prompt for subsequent requests", async () => {
+      provider.setSystemPrompt("New system prompt");
+
+      provider.sendUserMessage("test");
+
+      await vi.waitFor(() => {
+        expect(mockStreamText).toHaveBeenCalled();
+      });
+
+      const lastCall = mockStreamText.mock.calls[mockStreamText.mock.calls.length - 1]!;
+      const callArgs = lastCall[0] as Record<string, unknown>;
+      expect(callArgs.system).toBe("New system prompt");
+    });
+
     it("executeSlashCommand runs a registered command", async () => {
       const executeFn = vi.fn().mockResolvedValue("Command executed");
       provider.registerSlashCommand({
@@ -1879,6 +1953,103 @@ describe("ChatWebviewProvider", () => {
         );
         expect(threadStateEvents.length).toBeGreaterThanOrEqual(1);
       });
+    });
+  });
+
+  describe("onToolResult callback", () => {
+    it("fires after tool execution in the stream", async () => {
+      const onToolResult = vi.fn();
+      const toolProvider = new ChatWebviewProvider(createMockExtensionUri(), {
+        model: createMockModel(),
+        tools: {
+          readFile: {
+            description: "Read a file",
+            parameters: { type: "object" as const, properties: {} },
+          } as never,
+        },
+        onToolResult,
+      });
+      const toolView = createMockWebviewView();
+      toolProvider.resolveWebviewView(toolView);
+
+      // Mock streamText to emit a tool-result chunk
+      mockStreamText.mockImplementationOnce(() => {
+        return createMockResult([
+          { type: "tool-call", toolCallId: "tc1", toolName: "readFile", args: { path: "/foo" } },
+          { type: "tool-result", toolCallId: "tc1", toolName: "readFile", args: { path: "/foo" }, result: "file contents" },
+          { type: "text-delta", textDelta: "Done." },
+        ]);
+      });
+
+      // Trigger ready + send a message
+      toolView.simulateMessage({ type: "ready" });
+      await vi.waitFor(() => {
+        expect(toolView.postedMessages.some((m) => (m as HostToWebviewEvent).type === "threadState")).toBe(true);
+      });
+
+      toolView.simulateMessage({
+        type: "sendMessage",
+        threadId: toolProvider.getCurrentThread().id,
+        message: {
+          id: "m1",
+          role: "user",
+          content: [{ type: "text", text: "Read /foo" }],
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      await vi.waitFor(() => {
+        expect(onToolResult).toHaveBeenCalledWith("readFile", { path: "/foo" }, "file contents");
+      });
+    });
+
+    it("logs errors from onToolResult without interrupting stream", async () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const onToolResult = vi.fn().mockRejectedValue(new Error("callback boom"));
+
+      const toolProvider = new ChatWebviewProvider(createMockExtensionUri(), {
+        model: createMockModel(),
+        onToolResult,
+      });
+      const toolView = createMockWebviewView();
+      toolProvider.resolveWebviewView(toolView);
+
+      mockStreamText.mockImplementationOnce(() => {
+        return createMockResult([
+          { type: "tool-result", toolCallId: "tc1", toolName: "readFile", args: {}, result: "ok" },
+          { type: "text-delta", textDelta: "Done." },
+        ]);
+      });
+
+      toolView.simulateMessage({ type: "ready" });
+      await vi.waitFor(() => {
+        expect(toolView.postedMessages.some((m) => (m as HostToWebviewEvent).type === "threadState")).toBe(true);
+      });
+
+      toolView.simulateMessage({
+        type: "sendMessage",
+        threadId: toolProvider.getCurrentThread().id,
+        message: {
+          id: "m1",
+          role: "user",
+          content: [{ type: "text", text: "test" }],
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      // Stream should complete despite callback error
+      await vi.waitFor(() => {
+        const endEvents = toolView.postedMessages.filter(
+          (m) => (m as HostToWebviewEvent).type === "streamEnd",
+        );
+        expect(endEvents).toHaveLength(1);
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "[vscode-ai-chat] onToolResult callback error:",
+        expect.any(Error),
+      );
+      consoleSpy.mockRestore();
     });
   });
 });

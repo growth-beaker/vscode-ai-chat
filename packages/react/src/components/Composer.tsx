@@ -13,7 +13,7 @@ export type ComposerProps = ComposerConfig;
 export function Composer(props: ComposerProps) {
   // Props can come directly or from context (context allows stable component identity)
   const contextConfig = useComposerConfig();
-  const { showAttach, models, activeModel, onModelSwitch, usage, onExport } = {
+  const { showAttach, models, activeModel, onModelSwitch, usage, onExport, inputHint } = {
     ...contextConfig,
     ...props,
   };
@@ -61,6 +61,7 @@ export function Composer(props: ComposerProps) {
           autoFocus
           submitOnEnter
           onKeyDown={handleKeyDown}
+          {...(inputHint ? { placeholder: inputHint } : {})}
         />
 
         <ComposerPrimitive.Attachments

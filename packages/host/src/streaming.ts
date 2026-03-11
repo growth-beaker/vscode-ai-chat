@@ -10,6 +10,8 @@ export interface StreamingConfig {
   system?: string;
   tools?: ToolDefinitions;
   maxSteps?: number;
+  /** Called after each tool execution completes. Errors are logged but don't interrupt the stream. */
+  onToolResult?: (toolName: string, args: unknown, result: unknown) => void | Promise<void>;
 }
 
 /**
@@ -86,6 +88,20 @@ export class StreamingChatHandler {
               usage.completionTokens += chunkUsage.completionTokens ?? 0;
               usage.totalTokens += chunkUsage.totalTokens ?? 0;
             }
+          }
+        }
+
+        // Fire onToolResult callback for tool-result chunks
+        if (streamChunk.type === "tool-result" && config.onToolResult) {
+          try {
+            const maybePromise = config.onToolResult(
+              streamChunk.toolName as string,
+              streamChunk.args as unknown,
+              streamChunk.result as unknown,
+            );
+            if (maybePromise) await maybePromise;
+          } catch (err) {
+            console.error("[vscode-ai-chat] onToolResult callback error:", err);
           }
         }
 

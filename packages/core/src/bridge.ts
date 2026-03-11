@@ -58,8 +58,8 @@ export function createHostSender(postMessage: (msg: HostToWebviewEvent) => void)
     streamEnd(threadId: string, messageId: string) {
       postMessage({ type: "streamEnd", threadId, messageId });
     },
-    streamError(threadId: string, error: string) {
-      postMessage({ type: "streamError", threadId, error });
+    streamError(threadId: string, error: string, code?: string) {
+      postMessage({ type: "streamError", threadId, error, code });
     },
     streamProgress(threadId: string, text: string, messageId?: string) {
       postMessage({ type: "streamProgress", threadId, text, messageId });
@@ -78,6 +78,9 @@ export function createHostSender(postMessage: (msg: HostToWebviewEvent) => void)
     },
     configUpdate(config: Partial<ChatConfig>) {
       postMessage({ type: "configUpdate", config });
+    },
+    inputHint(hint: string | null) {
+      postMessage({ type: "inputHint", hint });
     },
   };
 }
