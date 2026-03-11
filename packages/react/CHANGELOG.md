@@ -1,5 +1,11 @@
 # @growthbeaker/ai-chat-react
 
+## 1.0.2
+
+### Patch Changes
+
+- Reduce markdown heading sizes for narrow sidebar chat panels
+
 ## 1.0.1
 
 ### Patch Changes
