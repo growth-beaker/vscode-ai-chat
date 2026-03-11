@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { ChatWebviewProvider } from "@vscode-ai-chat/host";
+import { ChatWebviewProvider } from "@growthbeaker/ai-chat-host";
 import { anthropic } from "@ai-sdk/anthropic";
 
 export function activate(context: vscode.ExtensionContext) {

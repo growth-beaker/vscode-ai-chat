@@ -1,7 +1,7 @@
 import { streamText } from "ai";
 import type { LanguageModel } from "ai";
-import type { ChatMessage, ChatContentPart, HostToWebviewEvent, TokenUsage } from "@vscode-ai-chat/core";
-import { generateId } from "@vscode-ai-chat/core";
+import type { ChatMessage, ChatContentPart, HostToWebviewEvent, TokenUsage } from "@growthbeaker/ai-chat-core";
+import { generateId } from "@growthbeaker/ai-chat-core";
 import { toCoreMessages } from "./message-converter.js";
 import type { ToolDefinitions } from "./types.js";
 

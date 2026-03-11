@@ -1,4 +1,4 @@
-import type { ChatConfig, ChatContentPart, ChatThread, ThreadStorage, MCPServerConfig } from "@vscode-ai-chat/core";
+import type { ChatConfig, ChatContentPart, ChatThread, ThreadStorage, MCPServerConfig } from "@growthbeaker/ai-chat-core";
 import type { LanguageModel, CoreTool } from "ai";
 import type { Memento } from "./storage/GlobalStateStorage.js";
 

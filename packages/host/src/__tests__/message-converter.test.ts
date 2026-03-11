@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { toCoreMessages } from "../message-converter.js";
-import type { ChatMessage } from "@vscode-ai-chat/core";
+import type { ChatMessage } from "@growthbeaker/ai-chat-core";
 
 describe("toCoreMessages", () => {
   it("converts a user text message", () => {

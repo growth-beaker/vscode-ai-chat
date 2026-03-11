@@ -1,4 +1,4 @@
-import type { MCPServerConfig } from "@vscode-ai-chat/core";
+import type { MCPServerConfig } from "@growthbeaker/ai-chat-core";
 import type { MCPClient, MCPTransport } from "@ai-sdk/mcp";
 import { createMCPClient } from "@ai-sdk/mcp";
 import type { CoreTool } from "ai";

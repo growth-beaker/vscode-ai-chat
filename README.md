@@ -87,9 +87,9 @@ The library is split into three packages:
 
 | Package | Runtime | Purpose |
 |---|---|---|
-| `@vscode-ai-chat/core` | Shared | Types, event protocol, and utilities |
-| `@vscode-ai-chat/host` | Node.js (extension host) | `ChatWebviewProvider`, LLM streaming, storage, MCP |
-| `@vscode-ai-chat/react` | Browser (webview) | `ChatPanel` component, runtime adapter, thread list |
+| `@growthbeaker/ai-chat-core` | Shared | Types, event protocol, and utilities |
+| `@growthbeaker/ai-chat-host` | Node.js (extension host) | `ChatWebviewProvider`, LLM streaming, storage, MCP |
+| `@growthbeaker/ai-chat-react` | Browser (webview) | `ChatPanel` component, runtime adapter, thread list |
 
 ---
 
@@ -97,13 +97,13 @@ The library is split into three packages:
 
 ```bash
 # Using pnpm (recommended)
-pnpm add @vscode-ai-chat/core @vscode-ai-chat/host @vscode-ai-chat/react
+pnpm add @growthbeaker/ai-chat-core @growthbeaker/ai-chat-host @growthbeaker/ai-chat-react
 
 # Using npm
-npm install @vscode-ai-chat/core @vscode-ai-chat/host @vscode-ai-chat/react
+npm install @growthbeaker/ai-chat-core @growthbeaker/ai-chat-host @growthbeaker/ai-chat-react
 
 # Using yarn
-yarn add @vscode-ai-chat/core @vscode-ai-chat/host @vscode-ai-chat/react
+yarn add @growthbeaker/ai-chat-core @growthbeaker/ai-chat-host @growthbeaker/ai-chat-react
 ```
 
 You also need the Vercel AI SDK and a provider of your choice:
@@ -126,8 +126,8 @@ pnpm add @ai-sdk/mcp
 
 | Package | Peer Dependencies |
 |---|---|
-| `@vscode-ai-chat/host` | `ai` (>=4.0.0), `zod` (>=3.0.0), `@ai-sdk/mcp` (>=1.0.0, optional) |
-| `@vscode-ai-chat/react` | `react` (>=18.0.0 <20), `react-dom` |
+| `@growthbeaker/ai-chat-host` | `ai` (>=4.0.0), `zod` (>=3.0.0), `@ai-sdk/mcp` (>=1.0.0, optional) |
+| `@growthbeaker/ai-chat-react` | `react` (>=18.0.0 <20), `react-dom` |
 
 ### React
 
@@ -138,7 +138,7 @@ pnpm add react react-dom
 pnpm add -D @types/react @types/react-dom
 ```
 
-> **Note:** `@assistant-ui/react` is bundled inside `@vscode-ai-chat/react` — you do not need to install it separately.
+> **Note:** `@assistant-ui/react` is bundled inside `@growthbeaker/ai-chat-react` — you do not need to install it separately.
 
 ---
 
@@ -150,7 +150,7 @@ A working AI chat panel in two files.
 
 ```typescript
 import * as vscode from "vscode";
-import { ChatWebviewProvider } from "@vscode-ai-chat/host";
+import { ChatWebviewProvider } from "@growthbeaker/ai-chat-host";
 import { anthropic } from "@ai-sdk/anthropic";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -175,8 +175,8 @@ export function deactivate() {}
 
 ```tsx
 import { createRoot } from "react-dom/client";
-import { ChatPanel } from "@vscode-ai-chat/react";
-import "@vscode-ai-chat/react/styles";
+import { ChatPanel } from "@growthbeaker/ai-chat-react";
+import "@growthbeaker/ai-chat-react/styles";
 
 const root = document.getElementById("root");
 if (root) {
@@ -256,8 +256,8 @@ If your extension already has its own React-based webview, you can embed `ChatPa
 ```tsx
 // Your extension's webview — ChatPanel is just another component
 import { createRoot } from "react-dom/client";
-import { ChatPanel } from "@vscode-ai-chat/react";
-import "@vscode-ai-chat/react/styles";
+import { ChatPanel } from "@growthbeaker/ai-chat-react";
+import "@growthbeaker/ai-chat-react/styles";
 import { MyDashboard, MySidebar } from "./components";
 
 function App() {
@@ -371,7 +371,7 @@ interface ChatConfig {
 ### Full Configuration Example
 
 ```typescript
-import { ChatWebviewProvider } from "@vscode-ai-chat/host";
+import { ChatWebviewProvider } from "@growthbeaker/ai-chat-host";
 import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from "@ai-sdk/openai";
 import { tool } from "ai";
@@ -782,7 +782,7 @@ Files are stored as:
 Implement the `ThreadStorage` interface for custom backends (database, cloud, etc.):
 
 ```typescript
-import type { ThreadStorage, ChatThread, ThreadSummary } from "@vscode-ai-chat/core";
+import type { ThreadStorage, ChatThread, ThreadSummary } from "@growthbeaker/ai-chat-core";
 
 class MyCloudStorage implements ThreadStorage {
   async listThreads(): Promise<ThreadSummary[]> {
@@ -990,12 +990,12 @@ const provider = new ChatWebviewProvider(context.extensionUri, {
 
 ### VS Code Theme Integration
 
-The `@vscode-ai-chat/react` package includes a `vscode-theme.css` file that maps VS Code CSS variables to the chat UI. Your webview automatically inherits the user's VS Code theme (light, dark, or high contrast).
+The `@growthbeaker/ai-chat-react` package includes a `vscode-theme.css` file that maps VS Code CSS variables to the chat UI. Your webview automatically inherits the user's VS Code theme (light, dark, or high contrast).
 
 In your webview build, import the combined styles (includes both the base UI styles and VS Code theme):
 
 ```tsx
-import "@vscode-ai-chat/react/styles";
+import "@growthbeaker/ai-chat-react/styles";
 ```
 
 ---
@@ -1286,7 +1286,7 @@ Takes effect on the next LLM request. Template system prompts still take priorit
 Create threads with seed messages for onboarding or context setup:
 
 ```typescript
-import { createThread } from "@vscode-ai-chat/core";
+import { createThread } from "@growthbeaker/ai-chat-core";
 
 const thread = createThread({
   title: "Code Review Session",
@@ -1360,8 +1360,8 @@ const result = await provider.waitForUserAction("deploy-123");
 Render custom UI components for `data` content parts in the webview:
 
 ```tsx
-import { ChatPanel } from "@vscode-ai-chat/react";
-import type { DataPartRenderers } from "@vscode-ai-chat/react";
+import { ChatPanel } from "@growthbeaker/ai-chat-react";
+import type { DataPartRenderers } from "@growthbeaker/ai-chat-react";
 
 const dataParts: DataPartRenderers = {
   "build-result": ({ data }) => (
@@ -1388,7 +1388,7 @@ createRoot(root).render(<ChatPanel dataParts={dataParts} />);
 Create custom UIs for tool calls:
 
 ```tsx
-import { ChatPanel, makeAssistantToolUI } from "@vscode-ai-chat/react";
+import { ChatPanel, makeAssistantToolUI } from "@growthbeaker/ai-chat-react";
 
 const WeatherToolUI = makeAssistantToolUI({
   toolName: "getWeather",
@@ -1478,7 +1478,7 @@ writeFileSync("dist/webview.css", auiCss + "\n" + themeCss);
 Create `src/webview/styles.css` that imports the VS Code theme:
 
 ```css
-@import "@vscode-ai-chat/react/styles";
+@import "@growthbeaker/ai-chat-react/styles";
 ```
 
 ### tsconfig.json
@@ -1542,9 +1542,9 @@ Your extension's `package.json` must declare the webview view, a view container,
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.0",
-    "@vscode-ai-chat/core": "latest",
-    "@vscode-ai-chat/host": "latest",
-    "@vscode-ai-chat/react": "latest",
+    "@growthbeaker/ai-chat-core": "latest",
+    "@growthbeaker/ai-chat-host": "latest",
+    "@growthbeaker/ai-chat-react": "latest",
     "ai": "^4.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -1708,7 +1708,7 @@ interface ThreadStorage {
 
 ### Additional Exports
 
-**From `@vscode-ai-chat/host`:**
+**From `@growthbeaker/ai-chat-host`:**
 
 | Export | Description |
 |---|---|
@@ -1721,7 +1721,7 @@ interface ThreadStorage {
 | `createStorage(config)` | Factory function for creating storage from config |
 | `MCPManager` | MCP client connection manager |
 
-**From `@vscode-ai-chat/core`:**
+**From `@growthbeaker/ai-chat-core`:**
 
 | Export | Description |
 |---|---|
@@ -1735,7 +1735,7 @@ interface ThreadStorage {
 | `isWebviewToHostEvent(data)` | Type guard for webview-to-host events |
 | `isHostToWebviewEvent(data)` | Type guard for host-to-webview events |
 
-**From `@vscode-ai-chat/react`:**
+**From `@growthbeaker/ai-chat-react`:**
 
 | Export | Description |
 |---|---|

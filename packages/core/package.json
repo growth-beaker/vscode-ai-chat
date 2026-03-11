@@ -1,6 +1,6 @@
 {
-  "name": "@vscode-ai-chat/core",
-  "version": "0.0.0",
+  "name": "@growthbeaker/ai-chat-core",
+  "version": "1.0.0",
   "type": "module",
   "description": "Shared types and protocol definitions for vscode-ai-chat",
   "license": "MIT",

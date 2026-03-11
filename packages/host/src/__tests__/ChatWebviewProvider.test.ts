@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ChatWebviewProvider } from "../ChatWebviewProvider.js";
-import type { HostToWebviewEvent } from "@vscode-ai-chat/core";
+import type { HostToWebviewEvent } from "@growthbeaker/ai-chat-core";
 
 // Mock the 'ai' module
 vi.mock("ai", () => ({
@@ -1018,7 +1018,7 @@ describe("ChatWebviewProvider", () => {
 
   describe("persistence", () => {
     function createMockStorage() {
-      const threads = new Map<string, import("@vscode-ai-chat/core").ChatThread>();
+      const threads = new Map<string, import("@growthbeaker/ai-chat-core").ChatThread>();
       return {
         threads,
         listThreads: vi.fn(async () =>
@@ -1029,7 +1029,7 @@ describe("ChatWebviewProvider", () => {
           })),
         ),
         loadThread: vi.fn(async (id: string) => threads.get(id)),
-        saveThread: vi.fn(async (thread: import("@vscode-ai-chat/core").ChatThread) => {
+        saveThread: vi.fn(async (thread: import("@growthbeaker/ai-chat-core").ChatThread) => {
           threads.set(thread.id, thread);
         }),
         deleteThread: vi.fn(async (id: string) => {

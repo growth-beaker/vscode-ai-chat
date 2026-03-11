@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
 import { useVSCodeRuntime, type VSCodeApi } from "../runtime/useVSCodeRuntime.js";
-import type { HostToWebviewEvent } from "@vscode-ai-chat/core";
+import type { HostToWebviewEvent } from "@growthbeaker/ai-chat-core";
 import { afterEach } from "vitest";
 
 function createMockVSCodeApi(): VSCodeApi & { messages: unknown[] } {

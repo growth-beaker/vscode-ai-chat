@@ -7,15 +7,15 @@ import type {
   WebviewToHostEvent,
   FileContentPart,
   ImageContentPart,
-} from "@vscode-ai-chat/core";
-import { createThread, toThreadSummary, exportThreadAsJSON, exportThreadAsMarkdown } from "@vscode-ai-chat/core";
-import { isWebviewToHostEvent } from "@vscode-ai-chat/core";
+} from "@growthbeaker/ai-chat-core";
+import { createThread, toThreadSummary, exportThreadAsJSON, exportThreadAsMarkdown } from "@growthbeaker/ai-chat-core";
+import { isWebviewToHostEvent } from "@growthbeaker/ai-chat-core";
 import { generateHtml, generateNonce } from "./html.js";
 import { StreamingChatHandler } from "./streaming.js";
 import { createStorage } from "./storage/index.js";
 import { MCPManager } from "./mcp.js";
 import type { ChatProviderConfig, ChatTemplate, SlashCommandHandler, SlashCommandContext } from "./types.js";
-import type { ChatContentPart, TokenUsage } from "@vscode-ai-chat/core";
+import type { ChatContentPart, TokenUsage } from "@growthbeaker/ai-chat-core";
 
 /**
  * Minimal VS Code types to avoid hard dependency on the vscode module at compile time.

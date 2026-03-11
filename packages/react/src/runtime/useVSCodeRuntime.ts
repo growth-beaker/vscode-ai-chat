@@ -9,8 +9,8 @@ import type {
   ChatConfig,
   HostToWebviewEvent,
   ThreadSummary,
-} from "@vscode-ai-chat/core";
-import { parseEvent, isHostToWebviewEvent, generateId } from "@vscode-ai-chat/core";
+} from "@growthbeaker/ai-chat-core";
+import { parseEvent, isHostToWebviewEvent, generateId } from "@growthbeaker/ai-chat-core";
 import {
   toThreadMessageLike,
   fromAppendContent,

@@ -1,4 +1,4 @@
-import type { ThreadStorage } from "@vscode-ai-chat/core";
+import type { ThreadStorage } from "@growthbeaker/ai-chat-core";
 import type { PersistenceConfig } from "../types.js";
 import { GlobalStateStorage } from "./GlobalStateStorage.js";
 import { FileSystemStorage } from "./FileSystemStorage.js";

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { StreamingChatHandler } from "../streaming.js";
-import type { HostToWebviewEvent, ChatMessage } from "@vscode-ai-chat/core";
+import type { HostToWebviewEvent, ChatMessage } from "@growthbeaker/ai-chat-core";
 
 // Mock the 'ai' module's streamText
 vi.mock("ai", () => ({

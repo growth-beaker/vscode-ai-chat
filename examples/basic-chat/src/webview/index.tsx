@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
-import { ChatPanel } from "@vscode-ai-chat/react";
-import "@vscode-ai-chat/react/styles";
+import { ChatPanel } from "@growthbeaker/ai-chat-react";
+import "@growthbeaker/ai-chat-react/styles";
 
 const root = document.getElementById("root");
 if (root) {

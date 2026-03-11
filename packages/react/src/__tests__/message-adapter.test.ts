@@ -5,7 +5,7 @@ import {
   fromAppendContent,
   createMessageConverter,
 } from "../runtime/message-adapter.js";
-import type { ChatMessage } from "@vscode-ai-chat/core";
+import type { ChatMessage } from "@growthbeaker/ai-chat-core";
 
 describe("toThreadMessageLike", () => {
   it("converts a text message", () => {

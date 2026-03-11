@@ -3,9 +3,9 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [],
-  "linked": [["@vscode-ai-chat/core", "@vscode-ai-chat/react", "@vscode-ai-chat/host"]],
+  "linked": [["@growthbeaker/ai-chat-core", "@growthbeaker/ai-chat-react", "@growthbeaker/ai-chat-host"]],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["basic-chat"]
+  "ignore": ["basic-chat-example"]
 }

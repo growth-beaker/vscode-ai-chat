@@ -15,7 +15,7 @@ This plan implements the design document in three phases, with Phase 1 (Core Cha
 - **Monorepo**: pnpm workspaces + Turborepo
 - **Build**: tsup (libraries), esbuild (webview bundle)
 - **Test**: vitest + @testing-library/react
-- **Packages**: `@vscode-ai-chat/core`, `@vscode-ai-chat/react`, `@vscode-ai-chat/host`
+- **Packages**: `@growthbeaker/ai-chat-core`, `@growthbeaker/ai-chat-react`, `@growthbeaker/ai-chat-host`
 - **Key deps**: `ai` (Vercel AI SDK), `@assistant-ui/react`, `streamdown`
 
 ---
@@ -104,7 +104,7 @@ packages/host/src/index.ts
 
 ---
 
-### Task 1.2 — Core Types & Protocol (`@vscode-ai-chat/core`)
+### Task 1.2 — Core Types & Protocol (`@growthbeaker/ai-chat-core`)
 
 **What**: Implement all shared types from design doc Section 3.1.
 
@@ -143,13 +143,13 @@ packages/core/src/__tests__/types.test.ts
 **Success criteria**:
 
 - Package builds with zero errors
-- All types exported from `@vscode-ai-chat/core`
+- All types exported from `@growthbeaker/ai-chat-core`
 - Type guards correctly narrow union types
 - Tests pass
 
 ---
 
-### Task 1.3 — PostMessage Bridge (`@vscode-ai-chat/core`)
+### Task 1.3 — PostMessage Bridge (`@growthbeaker/ai-chat-core`)
 
 **What**: Type-safe postMessage helpers used by both `react` and `host` packages.
 
@@ -176,7 +176,7 @@ packages/core/src/__tests__/bridge.test.ts
 
 ---
 
-### Task 1.4 — React Chat Panel (`@vscode-ai-chat/react`)
+### Task 1.4 — React Chat Panel (`@growthbeaker/ai-chat-react`)
 
 **What**: The `ChatPanel` component — the main webview UI. Connects to `ExternalStoreRuntime` from assistant-ui, renders streaming messages with VS Code theming.
 
@@ -249,7 +249,7 @@ packages/react/src/__tests__/message-adapter.test.ts
 
 ---
 
-### Task 1.5 — Host Provider Core (`@vscode-ai-chat/host`)
+### Task 1.5 — Host Provider Core (`@growthbeaker/ai-chat-host`)
 
 **What**: `ChatWebviewProvider` class — implements `vscode.WebviewViewProvider`, handles webview lifecycle, postMessage bridge, and HTML shell generation.
 
@@ -312,7 +312,7 @@ packages/host/src/__tests__/html.test.ts
 
 ---
 
-### Task 1.6 — LLM Streaming Integration (`@vscode-ai-chat/host`)
+### Task 1.6 — LLM Streaming Integration (`@growthbeaker/ai-chat-host`)
 
 **What**: Wire up Vercel AI SDK `streamText()` to handle `sendMessage` events and stream responses back to the webview.
 
@@ -381,7 +381,7 @@ packages/host/src/__tests__/message-converter.test.ts
 
 ---
 
-### Task 1.7 — Tool Execution (`@vscode-ai-chat/host`)
+### Task 1.7 — Tool Execution (`@growthbeaker/ai-chat-host`)
 
 **What**: Support tool definitions that the LLM can call. Phase 1 covers synchronous (auto-execute) tools only — no HITL approval yet.
 
@@ -445,7 +445,7 @@ examples/basic-chat/
 
    ```typescript
    import * as vscode from "vscode";
-   import { ChatWebviewProvider } from "@vscode-ai-chat/host";
+   import { ChatWebviewProvider } from "@growthbeaker/ai-chat-host";
    import { anthropic } from "@ai-sdk/anthropic";
 
    export function activate(context: vscode.ExtensionContext) {
@@ -464,7 +464,7 @@ examples/basic-chat/
 
    ```tsx
    import { createRoot } from "react-dom/client";
-   import { ChatPanel } from "@vscode-ai-chat/react";
+   import { ChatPanel } from "@growthbeaker/ai-chat-react";
    createRoot(document.getElementById("root")!).render(<ChatPanel />);
    ```
 

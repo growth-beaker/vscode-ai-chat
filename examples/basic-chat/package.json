@@ -41,9 +41,9 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.0",
-    "@vscode-ai-chat/core": "workspace:*",
-    "@vscode-ai-chat/host": "workspace:*",
-    "@vscode-ai-chat/react": "workspace:*",
+    "@growthbeaker/ai-chat-core": "workspace:*",
+    "@growthbeaker/ai-chat-host": "workspace:*",
+    "@growthbeaker/ai-chat-react": "workspace:*",
     "ai": "^4.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

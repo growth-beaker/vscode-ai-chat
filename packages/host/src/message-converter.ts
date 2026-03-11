@@ -1,4 +1,4 @@
-import type { ChatMessage, ChatContentPart } from "@vscode-ai-chat/core";
+import type { ChatMessage, ChatContentPart } from "@growthbeaker/ai-chat-core";
 import type {
   CoreMessage,
   CoreUserMessage,

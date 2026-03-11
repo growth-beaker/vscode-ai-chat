@@ -1,5 +1,5 @@
-import type { ChatThread, ThreadSummary, ThreadStorage } from "@vscode-ai-chat/core";
-import { toThreadSummary } from "@vscode-ai-chat/core";
+import type { ChatThread, ThreadSummary, ThreadStorage } from "@growthbeaker/ai-chat-core";
+import { toThreadSummary } from "@growthbeaker/ai-chat-core";
 
 /** Minimal vscode.Memento interface to avoid hard dependency */
 export interface Memento {

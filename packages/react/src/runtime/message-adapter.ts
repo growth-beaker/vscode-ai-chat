@@ -1,5 +1,5 @@
 import { createElement, type ComponentType } from "react";
-import type { ChatMessage, ChatContentPart } from "@vscode-ai-chat/core";
+import type { ChatMessage, ChatContentPart } from "@growthbeaker/ai-chat-core";
 import type { ThreadMessageLike } from "@assistant-ui/react";
 
 type ThreadContentPart = Exclude<ThreadMessageLike["content"], string>[number];

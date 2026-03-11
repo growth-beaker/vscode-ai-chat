@@ -85,7 +85,7 @@ VS Code extension developers building AI-powered features. They know TypeScript,
 │                │                    │  │  │  (@ai-sdk/mcp)   │  │  │  │
 │                ▼                    │  │  └──────────────────┘  │  │  │
 │  ┌──────────────────────────────┐  │  │                        │  │  │
-│  │    @vscode-ai-chat/core      │  │  │  ┌──────────────────┐  │  │  │
+│  │    @growthbeaker/ai-chat-core      │  │  │  ┌──────────────────┐  │  │  │
 │  │    (shared types, protocol)  │  │  │  │  Persistence     │  │  │  │
 │  └──────────────────────────────┘  │  │  │  (globalState /   │  │  │  │
 │                                     │  │  │   filesystem)    │  │  │  │
@@ -111,7 +111,7 @@ VS Code extension developers building AI-powered features. They know TypeScript,
 ### Package Dependency Graph
 
 ```
-@vscode-ai-chat/react ──────► @vscode-ai-chat/core ◄────── @vscode-ai-chat/host
+@growthbeaker/ai-chat-react ──────► @growthbeaker/ai-chat-core ◄────── @growthbeaker/ai-chat-host
         │                              ▲                            │
         │                              │                            │
         ▼                              │                            ▼
@@ -120,7 +120,7 @@ VS Code extension developers building AI-powered features. They know TypeScript,
                                                                vscode (API)
 ```
 
-Provider packages (`@ai-sdk/anthropic`, `@ai-sdk/openai`, etc.) are **peer dependencies** of `@vscode-ai-chat/host` — consumers install only what they need.
+Provider packages (`@ai-sdk/anthropic`, `@ai-sdk/openai`, etc.) are **peer dependencies** of `@growthbeaker/ai-chat-host` — consumers install only what they need.
 
 ### Data Flow: User Sends a Message
 
@@ -144,7 +144,7 @@ Provider packages (`@ai-sdk/anthropic`, `@ai-sdk/openai`, etc.) are **peer depen
 
 ## 3. Package Details
 
-### 3.1 @vscode-ai-chat/core
+### 3.1 @growthbeaker/ai-chat-core
 
 **Purpose**: Shared types and protocol definitions. Zero runtime dependencies.
 
@@ -251,13 +251,13 @@ interface ChatConfig {
 
 ---
 
-### 3.2 @vscode-ai-chat/react
+### 3.2 @growthbeaker/ai-chat-react
 
 **Purpose**: Pre-configured React components for the webview. This is what renders inside the VS Code webview iframe.
 
 #### Dependencies
 
-- `@vscode-ai-chat/core` — shared types
+- `@growthbeaker/ai-chat-core` — shared types
 - `@assistant-ui/react` — chat UI primitives and runtime
 - `streamdown` — streaming markdown renderer
 
@@ -332,7 +332,7 @@ Extension developers register custom renderers for `data` parts using assistant-
 
 ```typescript
 // In the extension's webview entry point
-import { ChatPanel } from "@vscode-ai-chat/react";
+import { ChatPanel } from "@growthbeaker/ai-chat-react";
 import { makeAssistantDataUI } from "@assistant-ui/react";
 
 const CodeDiffCard = makeAssistantDataUI({
@@ -376,13 +376,13 @@ CSP compliance: no `eval()`, no inline scripts (use nonce), no `unsafe-inline` s
 
 ---
 
-### 3.3 @vscode-ai-chat/host
+### 3.3 @growthbeaker/ai-chat-host
 
 **Purpose**: Extension-host SDK. Runs in Node.js. Manages LLM calls, tool execution, MCP, persistence, and the postMessage bridge to the webview.
 
 #### Dependencies
 
-- `@vscode-ai-chat/core` — shared types
+- `@growthbeaker/ai-chat-core` — shared types
 - `ai` (Vercel AI SDK) — `streamText`, `tool`, `generateText`
 - `@ai-sdk/mcp` — `createMCPClient`
 - `vscode` (peer) — VS Code extension API
@@ -392,7 +392,7 @@ CSP compliance: no `eval()`, no inline scripts (use nonce), no `unsafe-inline` s
 The primary entry point for extension developers:
 
 ```typescript
-import { ChatWebviewProvider, type ChatProviderConfig } from "@vscode-ai-chat/host";
+import { ChatWebviewProvider, type ChatProviderConfig } from "@growthbeaker/ai-chat-host";
 
 class MyChatProvider extends ChatWebviewProvider {
   constructor(extensionUri: vscode.Uri) {
@@ -596,7 +596,7 @@ The webview can render a model selector dropdown that sends a `switchModel` even
 ```typescript
 // extension.ts
 import * as vscode from "vscode";
-import { ChatWebviewProvider } from "@vscode-ai-chat/host";
+import { ChatWebviewProvider } from "@growthbeaker/ai-chat-host";
 import { anthropic } from "@ai-sdk/anthropic";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -629,7 +629,7 @@ The webview entry point:
 ```tsx
 // webview/index.tsx
 import { createRoot } from "react-dom/client";
-import { ChatPanel } from "@vscode-ai-chat/react";
+import { ChatPanel } from "@growthbeaker/ai-chat-react";
 
 createRoot(document.getElementById("root")!).render(<ChatPanel />);
 ```
@@ -682,7 +682,7 @@ tools: {
 On the webview side, register a renderer:
 
 ```tsx
-import { ChatPanel } from "@vscode-ai-chat/react";
+import { ChatPanel } from "@growthbeaker/ai-chat-react";
 
 function CodeDiffCard({ data }: { data: { original: string; modified: string } }) {
   return (
@@ -937,7 +937,7 @@ resolveWebviewView(
 For a larger chat panel in the editor area, the library provides a helper:
 
 ```typescript
-import { openChatPanel } from "@vscode-ai-chat/host";
+import { openChatPanel } from "@growthbeaker/ai-chat-host";
 
 // Opens a full WebviewPanel in the editor area
 const panel = openChatPanel(context, {
@@ -1020,7 +1020,7 @@ Extensions using this library should activate on their view:
 
 ### CSS Variable Mapping
 
-The `@vscode-ai-chat/react` package ships a base stylesheet that maps VS Code's CSS custom properties to assistant-ui's expected tokens. This mapping is applied automatically when `ChatPanel` mounts.
+The `@growthbeaker/ai-chat-react` package ships a base stylesheet that maps VS Code's CSS custom properties to assistant-ui's expected tokens. This mapping is applied automatically when `ChatPanel` mounts.
 
 Key categories:
 
@@ -1074,15 +1074,15 @@ ui: {
 ```
 vscode-ai-chat/
 ├── packages/
-│   ├── core/              # @vscode-ai-chat/core
+│   ├── core/              # @growthbeaker/ai-chat-core
 │   │   ├── src/
 │   │   ├── package.json
 │   │   └── tsconfig.json
-│   ├── react/             # @vscode-ai-chat/react
+│   ├── react/             # @growthbeaker/ai-chat-react
 │   │   ├── src/
 │   │   ├── package.json
 │   │   └── tsconfig.json
-│   └── host/              # @vscode-ai-chat/host
+│   └── host/              # @growthbeaker/ai-chat-host
 │       ├── src/
 │       ├── package.json
 │       └── tsconfig.json
@@ -1121,9 +1121,9 @@ The `host` package marks `vscode` as external (it is provided at runtime by VS C
 
 | Package                 | Published As              | Format  |
 | ----------------------- | ------------------------- | ------- |
-| `@vscode-ai-chat/core`  | ESM + CJS + `.d.ts`       | Library |
-| `@vscode-ai-chat/react` | ESM + CJS + `.d.ts` + CSS | Library |
-| `@vscode-ai-chat/host`  | ESM + CJS + `.d.ts`       | Library |
+| `@growthbeaker/ai-chat-core`  | ESM + CJS + `.d.ts`       | Library |
+| `@growthbeaker/ai-chat-react` | ESM + CJS + `.d.ts` + CSS | Library |
+| `@growthbeaker/ai-chat-host`  | ESM + CJS + `.d.ts`       | Library |
 
 Version management via changesets (`@changesets/cli`). All packages share a version.
 
@@ -1181,9 +1181,9 @@ Webview testing in VS Code is inherently difficult. The strategy:
 
 Deliver a working chat experience with the minimum viable feature set.
 
-- `@vscode-ai-chat/core` — all types and interfaces
-- `@vscode-ai-chat/react` — `ChatPanel` with streaming markdown, VS Code theming
-- `@vscode-ai-chat/host` — `ChatWebviewProvider` with `streamText`, postMessage bridge
+- `@growthbeaker/ai-chat-core` — all types and interfaces
+- `@growthbeaker/ai-chat-react` — `ChatPanel` with streaming markdown, VS Code theming
+- `@growthbeaker/ai-chat-host` — `ChatWebviewProvider` with `streamText`, postMessage bridge
 - Single-thread conversations (no persistence yet)
 - Single-model configuration
 - Example extension

@@ -5,7 +5,7 @@ import * as os from "node:os";
 import { GlobalStateStorage, type Memento } from "../storage/GlobalStateStorage.js";
 import { FileSystemStorage } from "../storage/FileSystemStorage.js";
 import { createStorage } from "../storage/index.js";
-import type { ChatThread } from "@vscode-ai-chat/core";
+import type { ChatThread } from "@growthbeaker/ai-chat-core";
 
 function createTestThread(id: string, title?: string): ChatThread {
   return {

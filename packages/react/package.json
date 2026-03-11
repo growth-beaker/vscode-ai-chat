@@ -1,6 +1,6 @@
 {
-  "name": "@vscode-ai-chat/react",
-  "version": "0.0.0",
+  "name": "@growthbeaker/ai-chat-react",
+  "version": "1.0.0",
   "type": "module",
   "description": "React components for AI chat in VS Code webviews",
   "license": "MIT",
@@ -49,7 +49,7 @@
   "dependencies": {
     "@assistant-ui/react": "^0.7.0",
     "@assistant-ui/react-markdown": "^0.7.21",
-    "@vscode-ai-chat/core": "workspace:*",
+    "@growthbeaker/ai-chat-core": "workspace:*",
     "mermaid": "^11.13.0",
     "remark-gfm": "^4.0.1"
   },
