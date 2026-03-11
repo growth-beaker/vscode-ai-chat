@@ -46,8 +46,8 @@ function createMockWebviewView() {
         postedMessages.push(msg);
         return Promise.resolve(true);
       }),
-      asWebviewUri: vi.fn((uri: { fsPath: string }) => ({
-        toString: () => `https://webview${uri.fsPath}`,
+      asWebviewUri: vi.fn((uri: unknown) => ({
+        toString: () => `https://webview${(uri as { fsPath: string }).fsPath}`,
       })),
     },
     simulateMessage(msg: unknown) {
@@ -193,7 +193,7 @@ describe("ChatWebviewProvider", () => {
         return {
           fullStream: errorStream(),
           text: Promise.resolve(""),
-        } as ReturnType<typeof streamText>;
+        } as unknown as ReturnType<typeof streamText>;
       });
 
       mockView.simulateMessage({
@@ -1478,7 +1478,7 @@ describe("ChatWebviewProvider", () => {
       const mentionProvider = new ChatWebviewProvider(createMockExtensionUri(), {
         model: createMockModel(),
         contextMentionProvider: {
-          resolveFile: async (query) => [
+          resolveFile: async (_query) => [
             { label: "main.ts", description: "src/main.ts", value: "const x = 1;" },
           ],
         },
@@ -1632,6 +1632,252 @@ describe("ChatWebviewProvider", () => {
         expect(resultEvents.length).toBeGreaterThanOrEqual(1);
         const result = resultEvents[0] as HostToWebviewEvent & { type: "contextMentionResult" };
         expect(result.items).toEqual([]);
+      });
+    });
+  });
+
+  describe("manual mode (no model)", () => {
+    it("creates provider without a model", () => {
+      const manualProvider = new ChatWebviewProvider(createMockExtensionUri(), {
+        ui: { title: "Manual Chat" },
+      });
+      expect(manualProvider.getActiveModel()).toBeUndefined();
+    });
+
+    it("does not call streamText when sending a message in manual mode", async () => {
+      const manualProvider = new ChatWebviewProvider(createMockExtensionUri(), {});
+      const manualView = createMockWebviewView();
+      manualProvider.resolveWebviewView(manualView);
+
+      mockStreamText.mockClear();
+      manualView.simulateMessage({
+        type: "sendMessage",
+        threadId: "t1",
+        message: {
+          id: "m1",
+          role: "user",
+          content: [{ type: "text", text: "Hello" }],
+        },
+      });
+
+      // Give it time to process
+      await vi.waitFor(() => {
+        const thread = manualProvider.getCurrentThread();
+        expect(thread.messages).toHaveLength(1);
+        expect(thread.messages[0]!.role).toBe("user");
+      });
+
+      // streamText should NOT have been called
+      expect(mockStreamText).not.toHaveBeenCalled();
+    });
+
+    it("pushStreamStart/Delta/End sends correct events", () => {
+      const manualProvider = new ChatWebviewProvider(createMockExtensionUri(), {});
+      const manualView = createMockWebviewView();
+      manualProvider.resolveWebviewView(manualView);
+
+      const messageId = manualProvider.pushStreamStart();
+      expect(messageId).toBeDefined();
+
+      const startEvent = manualView.postedMessages.find(
+        (m) => (m as HostToWebviewEvent).type === "streamStart",
+      ) as HostToWebviewEvent & { type: "streamStart" };
+      expect(startEvent).toBeDefined();
+      expect(startEvent.messageId).toBe(messageId);
+
+      manualProvider.pushStreamDelta({ type: "text", text: "Hello" });
+      const deltaEvent = manualView.postedMessages.find(
+        (m) => (m as HostToWebviewEvent).type === "streamDelta",
+      ) as HostToWebviewEvent & { type: "streamDelta" };
+      expect(deltaEvent).toBeDefined();
+      expect(deltaEvent.delta).toEqual({ type: "text", text: "Hello" });
+
+      manualProvider.pushStreamEnd({ promptTokens: 10, completionTokens: 5, totalTokens: 15 });
+      const endEvent = manualView.postedMessages.find(
+        (m) => (m as HostToWebviewEvent).type === "streamEnd",
+      ) as HostToWebviewEvent & { type: "streamEnd" };
+      expect(endEvent).toBeDefined();
+      expect(endEvent.usage).toEqual({ promptTokens: 10, completionTokens: 5, totalTokens: 15 });
+    });
+
+    it("pushStreamError sends error event and resets stream", () => {
+      const manualProvider = new ChatWebviewProvider(createMockExtensionUri(), {});
+      const manualView = createMockWebviewView();
+      manualProvider.resolveWebviewView(manualView);
+
+      manualProvider.pushStreamStart();
+      manualProvider.pushStreamError("Something went wrong");
+
+      const errorEvent = manualView.postedMessages.find(
+        (m) => (m as HostToWebviewEvent).type === "streamError",
+      ) as HostToWebviewEvent & { type: "streamError" };
+      expect(errorEvent).toBeDefined();
+      expect(errorEvent.error).toBe("Something went wrong");
+
+      // Delta after error should warn (no active stream)
+      manualProvider.pushStreamDelta({ type: "text", text: "test" });
+      // Should not add another streamDelta since stream was reset
+      const deltas = manualView.postedMessages.filter(
+        (m) => (m as HostToWebviewEvent).type === "streamDelta",
+      );
+      expect(deltas).toHaveLength(0);
+    });
+
+    it("pushProgress sends streamProgress event", () => {
+      const manualProvider = new ChatWebviewProvider(createMockExtensionUri(), {});
+      const manualView = createMockWebviewView();
+      manualProvider.resolveWebviewView(manualView);
+
+      manualProvider.pushProgress("Loading...");
+
+      const progressEvent = manualView.postedMessages.find(
+        (m) => (m as HostToWebviewEvent).type === "streamProgress",
+      ) as HostToWebviewEvent & { type: "streamProgress" };
+      expect(progressEvent).toBeDefined();
+      expect(progressEvent.text).toBe("Loading...");
+    });
+  });
+
+  describe("onMessage hook", () => {
+    it("intercepts messages and prevents LLM call when handled", async () => {
+      const onMessage = vi.fn().mockResolvedValue({ handled: true });
+      const hookProvider = new ChatWebviewProvider(createMockExtensionUri(), {
+        model: createMockModel(),
+        onMessage,
+      });
+      const hookView = createMockWebviewView();
+      hookProvider.resolveWebviewView(hookView);
+
+      mockStreamText.mockClear();
+      hookView.simulateMessage({
+        type: "sendMessage",
+        threadId: "t1",
+        message: {
+          id: "m1",
+          role: "user",
+          content: [{ type: "text", text: "intercepted" }],
+        },
+      });
+
+      await vi.waitFor(() => {
+        expect(onMessage).toHaveBeenCalledWith("intercepted", expect.any(Object));
+      });
+
+      // streamText should not have been called
+      expect(mockStreamText).not.toHaveBeenCalled();
+    });
+
+    it("passes through to LLM when returning passthrough", async () => {
+      const onMessage = vi.fn().mockResolvedValue("passthrough");
+      const hookProvider = new ChatWebviewProvider(createMockExtensionUri(), {
+        model: createMockModel(),
+        onMessage,
+      });
+      const hookView = createMockWebviewView();
+      hookProvider.resolveWebviewView(hookView);
+
+      hookView.simulateMessage({
+        type: "sendMessage",
+        threadId: "t1",
+        message: {
+          id: "m1",
+          role: "user",
+          content: [{ type: "text", text: "pass through" }],
+        },
+      });
+
+      await vi.waitFor(() => {
+        expect(mockStreamText).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("onCancel callback", () => {
+    it("calls onCancel when generation is cancelled", async () => {
+      const onCancel = vi.fn();
+      const cancelProvider = new ChatWebviewProvider(createMockExtensionUri(), {
+        model: createMockModel(),
+        onCancel,
+      });
+      const cancelView = createMockWebviewView();
+      cancelProvider.resolveWebviewView(cancelView);
+
+      cancelView.simulateMessage({ type: "cancelGeneration", threadId: "t1" });
+
+      await vi.waitFor(() => {
+        expect(onCancel).toHaveBeenCalledOnce();
+      });
+    });
+  });
+
+  describe("programmatic API", () => {
+    it("sendUserMessage triggers handleSendMessage", async () => {
+      provider.sendUserMessage("Hello from code");
+
+      await vi.waitFor(() => {
+        const thread = provider.getCurrentThread();
+        const userMessages = thread.messages.filter((m) => m.role === "user");
+        expect(userMessages).toHaveLength(1);
+        expect(userMessages[0]!.content[0]).toEqual({ type: "text", text: "Hello from code" });
+      });
+    });
+
+    it("executeSlashCommand runs a registered command", async () => {
+      const executeFn = vi.fn().mockResolvedValue("Command executed");
+      provider.registerSlashCommand({
+        name: "test",
+        description: "Test command",
+        execute: executeFn,
+      });
+
+      provider.executeSlashCommand("test", "some args");
+
+      await vi.waitFor(() => {
+        expect(executeFn).toHaveBeenCalledWith("some args", expect.objectContaining({
+          threadId: expect.any(String),
+          respond: expect.any(Function),
+          respondContent: expect.any(Function),
+          progress: expect.any(Function),
+        }));
+      });
+    });
+  });
+
+  describe("slash command context", () => {
+    it("provides respond, respondContent, and progress methods", async () => {
+      const executeFn = vi.fn(async (_args: string, ctx: { respond: (t: string) => void; progress: (t: string) => void }) => {
+        ctx.progress("Working...");
+        ctx.respond("Done!");
+      });
+
+      const cmdProvider = new ChatWebviewProvider(createMockExtensionUri(), {
+        model: createMockModel(),
+        slashCommands: [
+          { name: "test", description: "Test", execute: executeFn },
+        ],
+      });
+      const cmdView = createMockWebviewView();
+      cmdProvider.resolveWebviewView(cmdView);
+
+      cmdView.simulateMessage({
+        type: "slashCommand",
+        threadId: "t1",
+        command: "test",
+        args: "",
+      });
+
+      await vi.waitFor(() => {
+        const progressEvents = cmdView.postedMessages.filter(
+          (m) => (m as HostToWebviewEvent).type === "streamProgress",
+        );
+        expect(progressEvents.length).toBeGreaterThanOrEqual(1);
+        expect((progressEvents[0] as HostToWebviewEvent & { type: "streamProgress" }).text).toBe("Working...");
+
+        // The respond() call + return value both post system messages
+        const threadStateEvents = cmdView.postedMessages.filter(
+          (m) => (m as HostToWebviewEvent).type === "threadState",
+        );
+        expect(threadStateEvents.length).toBeGreaterThanOrEqual(1);
       });
     });
   });

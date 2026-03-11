@@ -156,6 +156,13 @@ export interface StreamErrorEvent {
   error: string;
 }
 
+export interface StreamProgressEvent {
+  type: "streamProgress";
+  threadId: string;
+  messageId?: string;
+  text: string;
+}
+
 export interface ThreadStateEvent {
   type: "threadState";
   thread: ChatThread;
@@ -216,6 +223,7 @@ export type HostToWebviewEvent =
   | StreamDeltaEvent
   | StreamEndEvent
   | StreamErrorEvent
+  | StreamProgressEvent
   | ThreadStateEvent
   | ThreadListEvent
   | ToolCallEvent

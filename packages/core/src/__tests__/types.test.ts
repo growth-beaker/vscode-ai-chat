@@ -96,6 +96,7 @@ describe("type guards", () => {
         { type: "configUpdate", config: { title: "Test" } },
         { type: "contextMentionResult", mentionType: "file", items: [] },
         { type: "slashCommandList", commands: [{ name: "help", description: "Show help" }] },
+        { type: "streamProgress", threadId: "t1", text: "Loading..." },
       ];
       for (const event of events) {
         expect(isHostToWebviewEvent(event)).toBe(true);

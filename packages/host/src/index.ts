@@ -10,7 +10,9 @@ export type {
   ModelMap,
   ToolApprovalConfig,
   SlashCommandHandler,
+  SlashCommandContext,
   ContextMentionProvider,
+  OnMessageResult,
 } from "./types.js";
 export {
   GlobalStateStorage,

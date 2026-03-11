@@ -2,7 +2,7 @@
 
 A drop-in AI chat UI library for VS Code extensions. Build a fully-featured, multi-threaded chat panel with streaming LLM responses, tool execution, MCP integration, and persistent conversation history — in under 20 lines of code.
 
-**Works with any LLM provider** — Anthropic, OpenAI, Google, Mistral, local models, or anything supported by the [Vercel AI SDK](https://sdk.vercel.ai).
+**Works with any LLM provider** — Anthropic, OpenAI, Google, Mistral, local models, or anything supported by the [Vercel AI SDK](https://sdk.vercel.ai). Or use **manual mode** to drive the chat UI from your own backend — no Vercel AI SDK required.
 
 ## Table of Contents
 
@@ -22,6 +22,11 @@ A drop-in AI chat UI library for VS Code extensions. Build a fully-featured, mul
 - [Chat Templates](#chat-templates)
 - [Custom UI & Theming](#custom-ui--theming)
 - [Message Editing & Branching](#message-editing--branching)
+- [Manual Mode (Custom Backend)](#manual-mode-custom-backend)
+- [Message Interception (`onMessage`)](#message-interception-onmessage)
+- [Slash Commands](#slash-commands)
+- [Progress Indicators](#progress-indicators)
+- [Programmatic Control](#programmatic-control)
 - [System Messages & User Actions](#system-messages--user-actions)
 - [Custom Data Parts & Tool UIs](#custom-data-parts--tool-uis)
 - [Webview Setup & Build Configuration](#webview-setup--build-configuration)
@@ -34,6 +39,7 @@ A drop-in AI chat UI library for VS Code extensions. Build a fully-featured, mul
 ## Features
 
 - **Streaming Chat UI** — Real-time token streaming with markdown rendering, code highlighting, and cancel support
+- **Managed & Manual Modes** — Use with Vercel AI SDK for automatic LLM streaming, or drive the UI yourself from any backend
 - **Any LLM Provider** — Anthropic, OpenAI, Google Gemini, Mistral, Ollama, LM Studio, or any Vercel AI SDK-compatible provider
 - **Multi-Thread Conversations** — Create, switch, and delete independent chat threads with a sidebar thread list
 - **Tool Execution** — Define tools with Zod schemas; the LLM calls them automatically with multi-step reasoning
@@ -47,6 +53,9 @@ A drop-in AI chat UI library for VS Code extensions. Build a fully-featured, mul
 - **Custom Theming** — Inject custom CSS; inherits VS Code theme colors automatically
 - **VS Code Native** — Strict CSP compliance, nonce-based script loading, proper webview lifecycle management
 - **System Messages** — Inject messages from external workflows (progress cards, approval requests, result summaries)
+- **Message Interception** — Hook into user messages before they reach the LLM with `onMessage`
+- **Progress Indicators** — Show transient status text during long operations
+- **Programmatic Control** — Send messages and execute slash commands from extension code
 - **Custom Data Parts** — Render extension-defined UI cards within the conversation
 
 ---
@@ -282,8 +291,8 @@ The `ChatWebviewProvider` constructor accepts an `extensionUri` and a `ChatProvi
 
 ```typescript
 interface ChatProviderConfig {
-  /** The default LLM model to use (required) */
-  model: LanguageModel;
+  /** The default LLM model. Omit for manual mode. */
+  model?: LanguageModel;
 
   /** Additional models for runtime switching, keyed by display ID */
   models?: ModelMap;
@@ -311,6 +320,18 @@ interface ChatProviderConfig {
 
   /** Chat session templates */
   templates?: ChatTemplate[];
+
+  /** Slash commands available in the chat */
+  slashCommands?: SlashCommandHandler[];
+
+  /** Context mention provider for @file, @workspace, @symbol resolution */
+  contextMentionProvider?: ContextMentionProvider;
+
+  /** Message interceptor — called before messages reach the LLM */
+  onMessage?: (message: string, thread: ChatThread) => OnMessageResult | Promise<OnMessageResult>;
+
+  /** Cancel callback — runs custom logic when the user cancels generation */
+  onCancel?: () => void | Promise<void>;
 }
 ```
 
@@ -983,6 +1004,193 @@ When a user reloads a message:
 
 ---
 
+## Manual Mode (Custom Backend)
+
+Omit `model` from the config to use **manual mode** — the chat UI becomes a "dumb pipe" that you control from your extension. This is ideal when your LLM calls go through a separate SDK (Claude Agent SDK, custom API, etc.) rather than Vercel AI SDK.
+
+### Setting Up Manual Mode
+
+```typescript
+const provider = new ChatWebviewProvider(context.extensionUri, {
+  // No model — manual mode
+  ui: {
+    title: "Agent Chat",
+    placeholder: "Talk to the agent...",
+  },
+});
+```
+
+When the user sends a message, the provider adds it to the thread and persists it — but does **not** call any LLM. Your extension is responsible for generating responses.
+
+### Streaming from Your Backend
+
+Use the manual streaming API to push content to the chat UI:
+
+```typescript
+// Start a new assistant message stream
+const messageId = provider.pushStreamStart();
+
+// Push content chunks (text, tool-calls, tool-results, etc.)
+provider.pushStreamDelta({ type: "text", text: "Analyzing your code..." });
+provider.pushStreamDelta({ type: "text", text: " Found 3 issues." });
+
+// End the stream (optionally include token usage)
+provider.pushStreamEnd({ promptTokens: 100, completionTokens: 50, totalTokens: 150 });
+```
+
+For errors, use `pushStreamError()`:
+
+```typescript
+provider.pushStreamError("Connection to agent lost. Please try again.");
+```
+
+### Example: SDK Bridge Integration
+
+```typescript
+// Subscribe to your SDK's message stream
+sdkBridge.subscribe((event) => {
+  if (event.type === "start") {
+    provider.pushStreamStart();
+  } else if (event.type === "text") {
+    provider.pushStreamDelta({ type: "text", text: event.text });
+  } else if (event.type === "end") {
+    provider.pushStreamEnd();
+  } else if (event.type === "error") {
+    provider.pushStreamError(event.message);
+  }
+});
+```
+
+---
+
+## Message Interception (`onMessage`)
+
+Intercept user messages before they reach the LLM. Useful for routing input to external systems, handling human-in-the-loop workflows, or implementing custom commands.
+
+```typescript
+const provider = new ChatWebviewProvider(context.extensionUri, {
+  model: anthropic("claude-sonnet-4-5"),
+  onMessage: async (message, thread) => {
+    // Check if the SDK bridge is waiting for user input
+    if (sdkBridge.hasPendingInput()) {
+      sdkBridge.resolveInput(message);
+      return { handled: true };  // Don't send to LLM
+    }
+
+    // Let everything else through to the LLM
+    return "passthrough";
+  },
+});
+```
+
+The `onMessage` callback receives the user's text and the current thread. Return `"passthrough"` to let the message proceed to the LLM, or `{ handled: true }` to consume it.
+
+> **Note:** `onMessage` is only called in managed mode (when `model` is set). In manual mode, all messages are always routed to the extension.
+
+---
+
+## Slash Commands
+
+Register slash commands with a rich response context for streaming output:
+
+```typescript
+const provider = new ChatWebviewProvider(context.extensionUri, {
+  model: anthropic("claude-sonnet-4-5"),
+  slashCommands: [
+    {
+      name: "status",
+      description: "Show workflow status",
+      execute: async (args, ctx) => {
+        // Show a transient progress indicator
+        ctx.progress("Fetching status...");
+
+        const status = await fetchWorkflowStatus();
+
+        // Post a rich response
+        ctx.respond(`**Status:** ${status.state}\n\n**Steps:** ${status.completedSteps}/${status.totalSteps}`);
+      },
+    },
+    {
+      name: "help",
+      description: "Show available commands",
+      execute: async () => {
+        // Returning a string still works (posts as system message)
+        return "Available commands:\n- /status — Show workflow status\n- /help — Show this message";
+      },
+    },
+  ],
+});
+```
+
+### Slash Command Context
+
+The `execute` function receives a `SlashCommandContext` with these methods:
+
+| Method | Description |
+|---|---|
+| `ctx.respond(text)` | Post a text response as a system message |
+| `ctx.respondContent(parts)` | Post structured `ChatContentPart[]` as a system message |
+| `ctx.progress(text)` | Show a transient progress indicator (doesn't persist) |
+| `ctx.threadId` | The ID of the active thread |
+
+You can also register slash commands at runtime:
+
+```typescript
+provider.registerSlashCommand({
+  name: "deploy",
+  description: "Deploy the current build",
+  execute: async (args, ctx) => {
+    ctx.progress("Deploying...");
+    await deploy(args);
+    ctx.respond("Deployment complete.");
+  },
+});
+```
+
+---
+
+## Progress Indicators
+
+Show transient status text during long operations. Progress text is not persisted in the thread history.
+
+```typescript
+// From the extension host
+provider.pushProgress("Connecting to server...");
+
+// From a slash command handler
+ctx.progress("Building project...");
+```
+
+The React hook exposes `progressText` for rendering in the UI:
+
+```tsx
+const { progressText } = useVSCodeRuntime();
+
+{progressText && <div className="progress">{progressText}</div>}
+```
+
+---
+
+## Programmatic Control
+
+Send user messages and execute slash commands from extension code — useful for play buttons, command palette actions, or other UI triggers.
+
+```typescript
+// Focus the chat view first
+await vscode.commands.executeCommand("myExtension.chatView.focus");
+
+// Send a message as if the user typed it
+provider.sendUserMessage("Explain this error");
+
+// Execute a slash command programmatically
+provider.executeSlashCommand("status");
+provider.executeSlashCommand("run", "my-workflow");
+```
+
+In managed mode, `sendUserMessage()` triggers LLM streaming. In manual mode, the message is added to the thread for your extension to handle.
+
+---
+
 ## System Messages & User Actions
 
 Inject messages into the chat from external code — useful for workflow progress updates, approval requests, or result summaries.
@@ -1293,8 +1501,17 @@ new ChatWebviewProvider(extensionUri: vscode.Uri, config: ChatProviderConfig)
 | `registerTemplate(template)` | `void` | Register a chat template at runtime |
 | `getTemplates()` | `ChatTemplate[]` | Get all registered templates |
 | `getActiveTemplate()` | `ChatTemplate \| null` | Get the currently active template |
-| `getActiveModel()` | `LanguageModel` | Get the currently active model |
+| `getActiveModel()` | `LanguageModel \| undefined` | Get the currently active model (undefined in manual mode) |
 | `getAvailableModelIds()` | `string[]` | Get available model IDs |
+| `registerSlashCommand(handler)` | `void` | Register a slash command at runtime |
+| `getSlashCommands()` | `SlashCommandHandler[]` | Get all registered slash commands |
+| `pushStreamStart()` | `string` | Begin a manual assistant stream; returns the message ID |
+| `pushStreamDelta(delta)` | `void` | Push a content delta to the current manual stream |
+| `pushStreamEnd(usage?)` | `void` | End the current manual stream |
+| `pushStreamError(error)` | `void` | Signal an error in the current manual stream |
+| `pushProgress(text)` | `void` | Post a transient progress indicator |
+| `sendUserMessage(text)` | `void` | Programmatically send a user message |
+| `executeSlashCommand(name, args?)` | `void` | Programmatically execute a slash command |
 | `dispose()` | `void` | Clean up resources (cancel streaming, close MCP, dispose subscriptions) |
 
 #### Properties

@@ -1,11 +1,15 @@
 /*
  * VS Code → assistant-ui CSS variable mapping.
- * Dark, light, and high-contrast themes work automatically
- * because VS Code updates its CSS custom properties on theme change.
+ *
+ * IMPORTANT: assistant-ui's variables (--aui-*) store HSL components e.g. "220 13% 20%".
+ * All color references MUST use hsl(var(--aui-*)) — never bare var(--aui-*).
+ *
+ * The :root mappings below are overridden by .aui-root HSL definitions
+ * in the consumer's styles.css. They serve as documentation / fallback only.
  */
 
 :root {
-  /* Colors */
+  /* Colors — these provide VS Code integration but require .aui-root HSL overrides */
   --aui-foreground: var(--vscode-foreground);
   --aui-background: var(--vscode-editor-background);
   --aui-card: var(--vscode-editorWidget-background);
@@ -36,10 +40,575 @@
 body {
   margin: 0;
   padding: 0;
-  background: var(--aui-background);
-  color: var(--aui-foreground);
+  background: hsl(var(--aui-background));
+  color: hsl(var(--aui-foreground));
   font-family: var(--aui-font-family);
   font-size: var(--aui-font-size);
+}
+
+/* Hide avatars globally */
+.aui-avatar-root {
+  display: none;
+}
+
+/* ── Thread layout overrides (full width in narrow sidebar) ────────── */
+.aui-thread-viewport {
+  align-items: stretch;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.aui-thread-viewport-footer {
+  max-width: none;
+  align-items: stretch;
+}
+
+/* ── Composer Wrapper (toolbar + composer card) ────────────────────── */
+.aui-composer-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 0 10px;
+}
+
+/* ── Toolbar (token usage + export, above composer card) ─────────── */
+.aui-composer-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 0 4px 5px;
+  gap: 8px;
+}
+
+.aui-composer-toolbar-spacer {
+  flex: 1;
+}
+
+.aui-composer-usage {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--aui-code-font-family);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+.aui-composer-usage-label {
+  color: hsl(var(--aui-muted-foreground));
+}
+
+.aui-composer-usage-value {
+  color: hsl(var(--aui-foreground));
+  opacity: 0.7;
+}
+
+.aui-composer-export {
+  position: relative;
+}
+
+.aui-composer-export-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: hsl(var(--aui-muted-foreground));
+  font-size: 10.5px;
+  font-family: var(--aui-font-family);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.aui-composer-export-trigger:hover {
+  background: hsl(var(--aui-selection));
+  color: hsl(var(--aui-foreground));
+}
+
+.aui-composer-export-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  right: 0;
+  background: hsl(var(--aui-card));
+  border: 1px solid hsl(var(--aui-border));
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 4px;
+  z-index: 50;
+  min-width: 160px;
+  animation: aui-picker-fade-in 150ms ease-out;
+}
+
+.aui-composer-export-menu-item {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: hsl(var(--aui-foreground));
+  font-size: 12px;
+  font-family: var(--aui-font-family);
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 120ms ease;
+}
+
+.aui-composer-export-menu-item:hover {
+  background: hsl(var(--aui-selection));
+}
+
+/* ── Composer — stacked layout ─────────────────────────────────────── */
+.aui-composer-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+  background: hsl(var(--aui-card));
+  border: 1px solid hsl(var(--aui-border));
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.aui-composer-root:focus-within {
+  border-color: hsl(var(--aui-accent));
+  box-shadow: 0 0 0 1px hsl(var(--aui-accent));
+}
+
+.aui-composer-input {
+  width: 100%;
+  min-height: 40px;
+  max-height: 150px;
+  padding: 10px 12px 4px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: hsl(var(--aui-foreground));
+  font-family: var(--aui-font-family);
+  font-size: var(--aui-font-size);
+  line-height: 1.5;
+  resize: none;
+  overflow-y: auto;
+}
+
+.aui-composer-input::placeholder {
+  color: hsl(var(--aui-muted-foreground));
+}
+
+/* ── File Chips ────────────────────────────────────────────────────── */
+.aui-composer-root > [data-scope="composer"][data-part="attachments"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 10px;
+}
+
+.aui-composer-root > [data-scope="composer"][data-part="attachments"]:empty {
+  display: none;
+}
+
+.aui-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px 3px 5px;
+  background: hsl(var(--aui-muted));
+  border: 1px solid hsl(var(--aui-border));
+  border-radius: 5px;
+  font-family: var(--aui-code-font-family);
+  font-size: 11px;
+  color: hsl(var(--aui-foreground));
+  max-width: 180px;
+  cursor: default;
+  transition: background 120ms ease;
+}
+
+.aui-file-chip:hover {
+  background: hsl(var(--aui-selection));
+}
+
+.aui-file-chip-icon {
+  flex-shrink: 0;
+  color: hsl(var(--aui-link));
+}
+
+.aui-file-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aui-file-chip-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: hsl(var(--aui-muted-foreground));
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.aui-file-chip-remove:hover {
+  background: rgba(255, 80, 80, 0.15);
+  color: hsl(var(--aui-destructive));
+}
+
+/* ── Composer Action Bar ───────────────────────────────────────────── */
+.aui-composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 5px 5px;
+  gap: 4px;
+}
+
+.aui-composer-actions-left {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.aui-composer-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Attach Button ─────────────────────────────────────────────────── */
+.aui-composer-attach {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: hsl(var(--aui-muted-foreground));
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.aui-composer-attach:hover:not(:disabled) {
+  background: hsl(var(--aui-selection));
+  color: hsl(var(--aui-foreground));
+}
+
+.aui-composer-attach:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ── Model Selector (inline) ───────────────────────────────────────── */
+.aui-composer-model-select {
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: hsl(var(--aui-muted-foreground));
+  font-family: var(--aui-code-font-family);
+  font-size: 10.5px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+  max-width: 140px;
+}
+
+.aui-composer-model-select:hover {
+  background: hsl(var(--aui-selection));
+  color: hsl(var(--aui-foreground));
+}
+
+.aui-composer-model-select:focus {
+  outline: 1px solid hsl(var(--aui-accent));
+}
+
+.aui-composer-model-select option {
+  background: hsl(var(--aui-card));
+  color: hsl(var(--aui-foreground));
+}
+
+/* ── Send Button ───────────────────────────────────────────────────── */
+.aui-composer-send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: hsl(var(--aui-primary));
+  color: hsl(var(--aui-primary-foreground));
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease, box-shadow 200ms ease;
+}
+
+.aui-composer-send:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 0 0 2px hsla(var(--aui-primary) / 0.25);
+}
+
+.aui-composer-send:active {
+  transform: scale(0.94);
+}
+
+.aui-composer-send:disabled {
+  background: hsl(var(--aui-muted));
+  color: hsl(var(--aui-muted-foreground));
+  cursor: default;
+  box-shadow: none;
+  filter: none;
+}
+
+.aui-composer-send:disabled:active {
+  transform: none;
+}
+
+/* ── Cancel / Stop Button ──────────────────────────────────────────── */
+.aui-composer-cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1.5px solid hsl(var(--aui-destructive));
+  background: transparent;
+  color: hsl(var(--aui-destructive));
+  cursor: pointer;
+  transition: background 120ms ease, box-shadow 200ms ease;
+}
+
+.aui-composer-cancel:hover {
+  background: hsla(var(--aui-destructive) / 0.1);
+  box-shadow: 0 0 0 2px hsla(var(--aui-destructive) / 0.15);
+}
+
+/* ── Slash Command Picker ──────────────────────────────────────────── */
+.aui-slash-picker {
+  position: fixed;
+  bottom: 60px;
+  left: 8px;
+  right: 8px;
+  z-index: 50;
+  max-height: 220px;
+  overflow-y: auto;
+  background: hsl(var(--aui-card));
+  color: hsl(var(--aui-card-foreground));
+  border: 1px solid hsl(var(--aui-border));
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  padding: 4px;
+  animation: aui-picker-fade-in 150ms ease-out;
+}
+
+.aui-slash-picker-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background 120ms ease;
+}
+
+.aui-slash-picker-item-selected,
+.aui-slash-picker-item:hover {
+  background: hsl(var(--aui-selection));
+}
+
+.aui-slash-picker-name {
+  font-weight: 500;
+  color: hsl(var(--aui-link));
+}
+
+.aui-slash-picker-desc {
+  color: hsl(var(--aui-muted-foreground));
+  font-size: 11px;
+}
+
+/* ── Mention picker dropdown ─────────────────────────────────────────── */
+.aui-mention-picker {
+  position: fixed;
+  bottom: 60px;
+  left: 8px;
+  right: 8px;
+  z-index: 50;
+  max-height: 220px;
+  overflow-y: auto;
+  background: hsl(var(--aui-card));
+  color: hsl(var(--aui-card-foreground));
+  border: 1px solid hsl(var(--aui-border));
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  padding: 4px;
+  animation: aui-picker-fade-in 150ms ease-out;
+}
+
+.aui-mention-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background 120ms ease;
+}
+
+.aui-mention-picker-item-selected,
+.aui-mention-picker-item:hover {
+  background: hsl(var(--aui-selection));
+}
+
+.aui-mention-picker-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.aui-mention-picker-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.aui-mention-picker-label {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aui-mention-picker-desc {
+  color: hsl(var(--aui-muted-foreground));
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Picker animation ──────────────────────────────────────────────── */
+@keyframes aui-picker-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── @mention pills in rendered messages ────────────────────────────── */
+.aui-mention {
+  display: inline;
+  padding: 2px 6px 2px 5px;
+  background: hsla(var(--aui-link) / 0.1);
+  border-radius: 4px;
+  font-family: var(--aui-code-font-family);
+  font-size: 0.88em;
+  font-weight: 500;
+  white-space: nowrap;
+  color: hsl(var(--aui-link));
+  letter-spacing: -0.01em;
+  border: 1px solid hsla(var(--aui-link) / 0.15);
+}
+
+/* ── Code blocks — full border-radius when no header ─────────────── */
+.aui-md-pre:first-child {
+  border-radius: 6px;
+}
+
+/* ── Mermaid diagrams ──────────────────────────────────────────────── */
+.aui-mermaid-diagram {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: hsl(var(--aui-code-background));
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.aui-mermaid-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.aui-mermaid-loading {
+  margin: 1rem 0;
+  padding: 1rem;
+  color: hsl(var(--aui-muted-foreground));
+  font-style: italic;
+}
+
+.aui-mermaid-error {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: hsl(var(--aui-code-background));
+  border-radius: 6px;
+  border-left: 3px solid hsl(var(--aui-destructive));
+}
+
+.aui-mermaid-error-msg {
+  margin-top: 0.5rem;
+  color: hsl(var(--aui-destructive));
+  font-size: 0.85em;
+}
+
+/* ── Streaming indicator — own line, reset all inherited markdown styles */
+.aui-text-running::after {
+  display: block;
+  margin-left: 0;
+  margin-top: 0.5rem;
+  font-size: 10px;
+  font-weight: normal;
+  font-style: normal;
+  font-family: system-ui, sans-serif;
+  line-height: 1;
+  text-decoration: none;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* ── File drop overlay ─────────────────────────────────────────────── */
+.aui-file-drop-zone {
+  position: relative;
+}
+
+.aui-file-drop-overlay {
+  position: absolute;
+  inset: 0;
+  background: hsla(var(--aui-accent) / 0.06);
+  backdrop-filter: blur(2px);
+  border: 2px dashed hsl(var(--aui-accent));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  animation: aui-drop-pulse 1.8s ease-in-out infinite;
+}
+
+.aui-file-drop-overlay-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: hsl(var(--aui-link));
+}
+
+@keyframes aui-drop-pulse {
+  0%, 100% { border-color: hsla(var(--aui-accent) / 0.4); }
+  50% { border-color: hsl(var(--aui-accent)); }
 }
 
 /* High-contrast border support */

@@ -108,17 +108,44 @@ body {
   height: 100%;
 }
 
-/* ── Thread fills the panel ──────────────────────────────────────────── */
-.aui-thread-root {
-  height: 100%;
+/* ── Flex layout: root → file-drop-zone → thread all stretch ─────────── */
+.aui-root {
+  display: flex;
+  flex-direction: column;
 }
 
-/* ── User message: prevent squishing in narrow sidebar panels ────────── */
+.aui-file-drop-zone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.aui-thread-root {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── User message — subtle accent bubble, right-aligned ──────────────── */
 .aui-user-message-root {
-  grid-template-columns: auto 1fr;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 .aui-user-message-content {
-  max-width: 100%;
+  max-width: 85%;
+  background-color: hsla(var(--aui-primary) / 0.08);
+  border: 1px solid hsla(var(--aui-primary) / 0.12);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.aui-user-action-bar-root {
+  margin-right: 0;
 }
 
 /* ── User action bar: only show on hover ─────────────────────────────── */
@@ -130,27 +157,23 @@ body {
   opacity: 1;
 }
 
-/* ── Assistant message: hide avatar, use full width ──────────────────── */
+/* ── Assistant message — full width, no background ───────────────────── */
 .aui-assistant-message-root > .aui-avatar-root,
 .aui-assistant-avatar {
   display: none;
 }
 .aui-assistant-message-root {
   grid-template-columns: auto 1fr;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 .aui-assistant-message-content {
   max-width: 100%;
   grid-column-start: 1;
-}
-
-/* ── Composer input tweaks for VS Code feel ──────────────────────────── */
-.aui-composer-root {
-  border-color: hsl(var(--aui-border));
-}
-
-.aui-composer-input {
-  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
-  font-size: var(--vscode-font-size, 13px);
+  font-size: 13px;
+  line-height: 1.55;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 /* ── Code block styling ──────────────────────────────────────────────── */
@@ -160,94 +183,7 @@ body {
   font-size: var(--vscode-editor-font-size, 12px);
 }
 
-/* ── Chat toolbar ────────────────────────────────────────────────────── */
-.aui-chat-toolbar {
-  display: flex;
-  align-items: center;
-  padding: 4px 8px;
-  border-bottom: 1px solid hsl(var(--aui-border));
-  font-size: 11px;
-  color: hsl(var(--aui-muted-foreground));
-}
-
-.aui-chat-toolbar-spacer {
-  flex: 1;
-}
-
-/* ── Token usage ─────────────────────────────────────────────────────── */
-.aui-token-usage {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.aui-token-usage-label {
-  opacity: 0.7;
-}
-
-.aui-token-usage-separator {
-  opacity: 0.4;
-}
-
-/* ── Export button ────────────────────────────────────────────────────── */
-.aui-export-button {
-  position: relative;
-}
-
-.aui-export-button-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: hsl(var(--aui-muted-foreground));
-  cursor: pointer;
-}
-
-.aui-export-button-trigger:hover {
-  background: hsl(var(--aui-accent));
-  color: hsl(var(--aui-accent-foreground));
-}
-
-.aui-export-menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  z-index: 50;
-  min-width: 160px;
-  padding: 4px 0;
-  background: hsl(var(--aui-popover));
-  color: hsl(var(--aui-popover-foreground));
-  border: 1px solid hsl(var(--aui-border));
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.aui-export-menu-item {
-  display: block;
-  width: 100%;
-  padding: 6px 12px;
-  border: none;
-  background: transparent;
-  color: inherit;
-  font-size: 12px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.aui-export-menu-item:hover {
-  background: hsl(var(--aui-accent));
-}
-
 /* ── File drop zone ──────────────────────────────────────────────────── */
-.aui-file-drop-zone {
-  position: relative;
-  height: 100%;
-}
 
 .aui-file-drop-overlay {
   position: absolute;
@@ -269,4 +205,100 @@ body {
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
+}
+
+/* ── Slash command & mention pickers ──────────────────────────────────── */
+.aui-slash-picker,
+.aui-mention-picker {
+  position: fixed;
+  bottom: 60px;
+  left: 8px;
+  right: 8px;
+  z-index: 50;
+  max-height: 200px;
+  overflow-y: auto;
+  background: hsl(var(--aui-popover));
+  color: hsl(var(--aui-popover-foreground));
+  border: 1px solid hsl(var(--aui-border));
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 4px 0;
+}
+
+.aui-slash-picker-item,
+.aui-mention-picker-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.aui-slash-picker-item-selected,
+.aui-mention-picker-item-selected,
+.aui-slash-picker-item:hover,
+.aui-mention-picker-item:hover {
+  background: hsl(var(--aui-accent));
+}
+
+.aui-slash-picker-name {
+  font-weight: 600;
+  color: hsl(var(--aui-primary));
+}
+
+.aui-slash-picker-desc,
+.aui-mention-picker-desc {
+  color: hsl(var(--aui-muted-foreground));
+  font-size: 11px;
+}
+
+.aui-mention-picker-item {
+  align-items: center;
+}
+
+.aui-mention-picker-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.aui-mention-picker-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.aui-mention-picker-label {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aui-mention-picker-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── @mention pills in rendered messages ─────────────────────────────── */
+.aui-mention {
+  display: inline;
+  padding: 2px 6px 2px 5px;
+  background: hsla(var(--aui-primary), 0.1);
+  border: 1px solid hsla(var(--aui-primary), 0.15);
+  border-radius: 4px;
+  font-family: var(--vscode-editor-font-family, 'Menlo', 'Monaco', 'Courier New', monospace);
+  font-size: 0.88em;
+  font-weight: 500;
+  white-space: nowrap;
+  color: hsl(var(--aui-primary));
+  letter-spacing: -0.01em;
 }

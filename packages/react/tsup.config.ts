@@ -19,10 +19,12 @@ export default defineConfig({
     const themeCss = readFileSync(join(__dirname, "src/theme/vscode-theme.css"), "utf-8");
     writeFileSync(join(__dirname, "dist/vscode-theme.css"), themeCss);
 
-    // Create combined styles.css that includes assistant-ui base styles + theme
+    // Create combined styles.css that includes assistant-ui base styles + markdown styles + theme
     const assistantUiStylesPath = require.resolve("@assistant-ui/react/styles/index.css");
     const assistantUiCss = readFileSync(assistantUiStylesPath, "utf-8");
-    const combinedCss = `/* assistant-ui base styles */\n${assistantUiCss}\n\n/* vscode-ai-chat theme */\n${themeCss}\n`;
+    const markdownStylesPath = require.resolve("@assistant-ui/react-markdown/styles/markdown.css");
+    const markdownCss = readFileSync(markdownStylesPath, "utf-8");
+    const combinedCss = `/* assistant-ui base styles */\n${assistantUiCss}\n\n/* assistant-ui markdown styles */\n${markdownCss}\n\n/* vscode-ai-chat theme */\n${themeCss}\n`;
     writeFileSync(join(__dirname, "dist/styles.css"), combinedCss);
   },
 });

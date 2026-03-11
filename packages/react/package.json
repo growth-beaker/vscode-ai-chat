@@ -48,7 +48,10 @@
   },
   "dependencies": {
     "@assistant-ui/react": "^0.7.0",
-    "@vscode-ai-chat/core": "workspace:*"
+    "@assistant-ui/react-markdown": "^0.7.21",
+    "@vscode-ai-chat/core": "workspace:*",
+    "mermaid": "^11.13.0",
+    "remark-gfm": "^4.0.1"
   },
   "peerDependencies": {
     "react": ">=18.0.0 <20",

@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VS Code AI Chat — Composer Design Mockup</title>
+<style>
+  /* ═══════════════════════════════════════════════════
+     DESIGN MOCKUP — VS Code AI Chat Composer
+     Direction: Refined Utilitarian
+
+     Native to VS Code but with the intentionality of
+     Cursor and the polish of ChatGPT. Every element
+     earns its place. Buttons feel like they belong.
+     ═══════════════════════════════════════════════════ */
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* ── Theme Tokens ── */
+  :root {
+    --panel-bg: #1e1e1e;
+    --panel-fg: #cccccc;
+    --panel-fg-muted: #858585;
+    --panel-fg-dim: #5a5a5a;
+    --composer-bg: #252526;
+    --composer-border: #3c3c3c;
+    --composer-border-focus: #007acc;
+    --composer-input-bg: #1e1e1e;
+    --accent: #007acc;
+    --accent-hover: #1a8ad4;
+    --accent-subtle: rgba(0, 122, 204, 0.08);
+    --accent-glow: rgba(0, 122, 204, 0.15);
+    --destructive: #c74e4e;
+    --destructive-hover: #d45f5f;
+    --chip-bg: #2d2d30;
+    --chip-border: #404040;
+    --picker-bg: #252526;
+    --picker-border: #454545;
+    --picker-hover: #2a2d2e;
+    --picker-selected: #04395e;
+    --overlay-bg: rgba(0, 122, 204, 0.06);
+    --overlay-border: rgba(0, 122, 204, 0.3);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.25);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.35);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.45);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'Menlo', 'Consolas', 'Courier New', monospace;
+    --transition-fast: 120ms ease;
+    --transition-med: 200ms ease;
+  }
+
+  .light-theme {
+    --panel-bg: #ffffff;
+    --panel-fg: #333333;
+    --panel-fg-muted: #767676;
+    --panel-fg-dim: #b0b0b0;
+    --composer-bg: #f8f8f8;
+    --composer-border: #e0e0e0;
+    --composer-border-focus: #007acc;
+    --composer-input-bg: #ffffff;
+    --accent: #0066b8;
+    --accent-hover: #0078d4;
+    --accent-subtle: rgba(0, 102, 184, 0.06);
+    --accent-glow: rgba(0, 102, 184, 0.1);
+    --chip-bg: #f0f0f0;
+    --chip-border: #d4d4d4;
+    --picker-bg: #ffffff;
+    --picker-border: #e0e0e0;
+    --picker-hover: #f5f5f5;
+    --picker-selected: #e8f0fe;
+    --overlay-bg: rgba(0, 102, 184, 0.04);
+    --overlay-border: rgba(0, 102, 184, 0.25);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: #171717;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 40px;
+    padding: 40px 24px;
+    min-height: 100vh;
+    flex-wrap: wrap;
+  }
+
+  /* ── Panel Shell (simulates VS Code sidebar) ── */
+  .panel-shell {
+    width: 380px;
+    height: 640px;
+    background: var(--panel-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+  }
+
+  .panel-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--panel-fg-dim);
+    padding: 12px 16px 0;
+    user-select: none;
+  }
+
+  /* ── Messages Area (simplified for mockup) ── */
+  .messages-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .msg {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--panel-fg);
+  }
+  .msg-user {
+    align-self: flex-end;
+    background: var(--accent-subtle);
+    border: 1px solid rgba(0, 122, 204, 0.12);
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    max-width: 90%;
+  }
+  .msg-assistant {
+    padding: 4px 0;
+  }
+  .msg-assistant code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--chip-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .mention-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--accent-subtle);
+    padding: 1px 7px;
+    border-radius: 4px;
+    text-decoration: none;
+    vertical-align: baseline;
+  }
+  .mention-pill svg {
+    width: 11px;
+    height: 11px;
+    opacity: 0.7;
+  }
+
+  /* ═══════════════════════════════════════════════════
+     COMPOSER — The main redesign
+
+     Key changes from current:
+     1. Stacked layout: textarea on top, action bar below
+     2. Buttons in a bottom toolbar feel purposeful
+     3. Attach button has its own visual language
+     4. Send button is a clear, confident CTA
+     5. File chips live between input and action bar
+     6. Subtle focus glow on the whole composer card
+     ═══════════════════════════════════════════════════ */
+
+  .composer-wrapper {
+    padding: 0 10px 12px;
+  }
+
+  .composer {
+    background: var(--composer-bg);
+    border: 1px solid var(--composer-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: border-color var(--transition-med), box-shadow var(--transition-med);
+  }
+  .composer:focus-within {
+    border-color: var(--composer-border-focus);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  /* ── Textarea ── */
+  .composer-input {
+    width: 100%;
+    min-height: 42px;
+    max-height: 150px;
+    padding: 12px 14px 4px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--panel-fg);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.5;
+    resize: none;
+    overflow-y: auto;
+  }
+  .composer-input::placeholder {
+    color: var(--panel-fg-dim);
+  }
+
+  /* ── File Chips (between input and action bar) ── */
+  .composer-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 10px;
+  }
+  .composer-chips:empty {
+    display: none;
+  }
+
+  .file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px 3px 7px;
+    background: var(--chip-bg);
+    border: 1px solid var(--chip-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--panel-fg);
+    max-width: 180px;
+    cursor: default;
+    transition: background var(--transition-fast);
+  }
+  .file-chip:hover {
+    background: var(--picker-hover);
+  }
+  .file-chip svg.file-icon {
+    width: 12px;
+    height: 12px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .file-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .file-chip-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--panel-fg-muted);
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: background var(--transition-fast), color var(--transition-fast);
+  }
+  .file-chip-remove:hover {
+    background: rgba(199, 78, 78, 0.15);
+    color: var(--destructive);
+  }
+  .file-chip-remove svg {
+    width: 10px;
+    height: 10px;
+  }
+
+  /* ── Action Bar (bottom toolbar) ── */
+  .composer-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 6px 6px;
+    gap: 4px;
+  }
+
+  .composer-actions-left {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .composer-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ── Icon Buttons (attach, etc.) ── */
+  .icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: transparent;
+    color: var(--panel-fg-muted);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    position: relative;
+  }
+  .icon-btn:hover {
+    background: var(--accent-subtle);
+    color: var(--panel-fg);
+  }
+  .icon-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Attach button with subtle tooltip-style label */
+  .icon-btn[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--picker-bg);
+    border: 1px solid var(--picker-border);
+    color: var(--panel-fg);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* ── Model Selector (compact, in action bar) ── */
+  .model-selector {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: transparent;
+    color: var(--panel-fg-dim);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    user-select: none;
+    letter-spacing: 0.01em;
+  }
+  .model-selector:hover {
+    background: var(--accent-subtle);
+    color: var(--panel-fg-muted);
+  }
+  .model-selector svg {
+    width: 10px;
+    height: 10px;
+    opacity: 0.6;
+  }
+
+  /* ── Send Button ── */
+  .send-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--accent);
+    color: #ffffff;
+    cursor: pointer;
+    transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-med);
+  }
+  .send-btn:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+  .send-btn:active {
+    transform: scale(0.94);
+  }
+  .send-btn svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  /* Send button disabled state (empty input) */
+  .send-btn.disabled {
+    background: var(--chip-bg);
+    color: var(--panel-fg-dim);
+    cursor: default;
+    box-shadow: none;
+  }
+  .send-btn.disabled:hover {
+    background: var(--chip-bg);
+    box-shadow: none;
+  }
+  .send-btn.disabled:active {
+    transform: none;
+  }
+
+  /* Cancel/Stop button state */
+  .send-btn.cancel {
+    background: transparent;
+    border: 1.5px solid var(--destructive);
+    color: var(--destructive);
+  }
+  .send-btn.cancel:hover {
+    background: rgba(199, 78, 78, 0.1);
+    border-color: var(--destructive-hover);
+    box-shadow: 0 0 0 2px rgba(199, 78, 78, 0.12);
+  }
+
+  /* ── Keyboard Hint ── */
+  .keyboard-hint {
+    font-size: 10px;
+    color: var(--panel-fg-dim);
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  /* ═══════════════════════════════════════════════════
+     PICKER DROPDOWNS (slash commands & mentions)
+     ═══════════════════════════════════════════════════ */
+
+  .picker-dropdown {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 10px;
+    right: 10px;
+    background: var(--picker-bg);
+    border: 1px solid var(--picker-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 4px;
+    z-index: 100;
+  }
+
+  .picker-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+  }
+  .picker-item:hover {
+    background: var(--picker-hover);
+  }
+  .picker-item.selected {
+    background: var(--picker-selected);
+  }
+
+  .picker-item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    background: var(--accent-subtle);
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .picker-item-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .picker-item-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .picker-item-name {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--panel-fg);
+    line-height: 1.3;
+  }
+  .picker-item-name span {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .picker-item-desc {
+    font-size: 11px;
+    color: var(--panel-fg-muted);
+    line-height: 1.35;
+    margin-top: 1px;
+  }
+
+  .picker-item-emoji {
+    font-size: 14px;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ═══════════════════════════════════════════════════
+     TOKEN USAGE BAR (above composer)
+     ═══════════════════════════════════════════════════ */
+
+  .token-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px 6px;
+  }
+
+  .token-stats {
+    display: flex;
+    gap: 12px;
+  }
+  .token-stat {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--panel-fg-dim);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: 0.02em;
+  }
+  .token-stat-label {
+    color: var(--panel-fg-muted);
+  }
+
+  .token-bar-actions {
+    display: flex;
+    gap: 4px;
+  }
+  .token-bar-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    color: var(--panel-fg-dim);
+    font-size: 10.5px;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+  }
+  .token-bar-btn:hover {
+    background: var(--accent-subtle);
+    color: var(--panel-fg-muted);
+  }
+  .token-bar-btn svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* ═══════════════════════════════════════════════════
+     FILE DROP OVERLAY
+     ═══════════════════════════════════════════════════ */
+
+  .drop-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--overlay-bg);
+    backdrop-filter: blur(2px);
+    border: 2px dashed var(--overlay-border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 200;
+  }
+  .drop-overlay svg {
+    width: 36px;
+    height: 36px;
+    color: var(--accent);
+    opacity: 0.7;
+  }
+  .drop-overlay span {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.01em;
+  }
+
+  /* ═══════════════════════════════════════════════════
+     LAYOUT LABELS & ANNOTATIONS
+     ═══════════════════════════════════════════════════ */
+
+  .mockup-title {
+    font-family: var(--font-sans);
+    font-size: 18px;
+    font-weight: 600;
+    color: #e0e0e0;
+    text-align: center;
+    width: 100%;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .mockup-subtitle {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: #666;
+    text-align: center;
+    width: 100%;
+    margin-bottom: 32px;
+    line-height: 1.5;
+  }
+
+  .variant-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: #555;
+    text-align: center;
+    margin-bottom: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Scrollbar styling ── */
+  .messages-area::-webkit-scrollbar,
+  .picker-dropdown::-webkit-scrollbar,
+  .composer-input::-webkit-scrollbar {
+    width: 6px;
+  }
+  .messages-area::-webkit-scrollbar-track,
+  .picker-dropdown::-webkit-scrollbar-track,
+  .composer-input::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .messages-area::-webkit-scrollbar-thumb,
+  .picker-dropdown::-webkit-scrollbar-thumb,
+  .composer-input::-webkit-scrollbar-thumb {
+    background: var(--panel-fg-dim);
+    border-radius: 3px;
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .picker-dropdown {
+    animation: fadeInUp 150ms ease-out;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { border-color: var(--overlay-border); }
+    50% { border-color: var(--accent); }
+  }
+  .drop-overlay {
+    animation: pulse-border 1.8s ease-in-out infinite;
+  }
+
+  /* ── Generating indicator ── */
+  .generating-dots {
+    display: flex;
+    gap: 3px;
+    padding: 8px 2px;
+  }
+  .generating-dots span {
+    width: 5px;
+    height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+    opacity: 0.3;
+    animation: dotPulse 1.2s ease-in-out infinite;
+  }
+  .generating-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .generating-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dotPulse {
+    0%, 100% { opacity: 0.2; transform: scale(0.85); }
+    50% { opacity: 0.8; transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<div class="mockup-title">VS Code AI Chat — Composer Redesign</div>
+<div class="mockup-subtitle">
+  Stacked layout: textarea first, action bar below. Buttons feel purposeful, not bolted on.<br>
+  Attach & model left, keyboard hint & send right. File chips between input and actions.
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     VARIANT 1: DARK — Idle state with file chips
+     ════════════════════════════════════════════════════════ -->
+<div>
+  <div class="variant-label">DARK — Idle with attached files</div>
+  <div class="panel-shell">
+    <div class="panel-label">AI Chat</div>
+    <div class="messages-area">
+      <div class="msg msg-user">
+        Explain the authentication flow in <a class="mention-pill" href="#">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 1.5h7l3 3V14.5H3z"/><path d="M10 1.5v3h3"/></svg>
+          auth.ts
+        </a>
+      </div>
+      <div class="msg msg-assistant">
+        The authentication flow uses a JWT-based approach. The <code>AuthService</code> class handles token generation, validation, and refresh cycles. Here's how it works…
+      </div>
+      <div class="msg msg-user">Can you refactor it to use OAuth2 instead?</div>
+      <div class="msg msg-assistant">
+        I'll restructure the auth module to use OAuth2 with PKCE flow. This involves changes to three files…
+      </div>
+    </div>
+
+    <!-- Token bar -->
+    <div class="token-bar">
+      <div class="token-stats">
+        <div class="token-stat"><span class="token-stat-label">in</span> 1.2k</div>
+        <div class="token-stat"><span class="token-stat-label">out</span> 847</div>
+      </div>
+      <div class="token-bar-actions">
+        <button class="token-bar-btn" data-tooltip="Export">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9v4h10V9"/><path d="M8 2v8M5 5l3-3 3 3"/></svg>
+          Export
+        </button>
+      </div>
+    </div>
+
+    <!-- Composer -->
+    <div class="composer-wrapper">
+      <div class="composer">
+        <textarea class="composer-input" placeholder="Ask anything… (@ to mention, / for commands)" rows="1">Update the error handling in</textarea>
+
+        <!-- File chips -->
+        <div class="composer-chips">
+          <div class="file-chip">
+            <svg class="file-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 1.5h7l3 3V14.5H3z"/><path d="M10 1.5v3h3"/></svg>
+            <span class="file-chip-name">auth-service.ts</span>
+            <button class="file-chip-remove">
+              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2l6 6M8 2l-6 6"/></svg>
+            </button>
+          </div>
+          <div class="file-chip">
+            <svg class="file-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 1.5h7l3 3V14.5H3z"/><path d="M10 1.5v3h3"/></svg>
+            <span class="file-chip-name">middleware.ts</span>
+            <button class="file-chip-remove">
+              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2l6 6M8 2l-6 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Action bar -->
+        <div class="composer-actions">
+          <div class="composer-actions-left">
+            <button class="icon-btn" data-tooltip="Attach files">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 8.2l-5.7 5.7a3.5 3.5 0 01-5-5L9 3.3a2.3 2.3 0 013.3 3.3L6.7 12.2a1.2 1.2 0 01-1.7-1.7L10.5 5"/></svg>
+            </button>
+            <button class="model-selector">
+              claude-4-sonnet
+              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 3.5L5 6.5l2.5-3"/></svg>
+            </button>
+          </div>
+          <div class="composer-actions-right">
+            <span class="keyboard-hint">⏎ send · ⌘⏎ newline</span>
+            <button class="send-btn">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l10-5L3 3v4l6 1-6 1z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     VARIANT 2: DARK — Generating (cancel button state)
+     ════════════════════════════════════════════════════════ -->
+<div>
+  <div class="variant-label">DARK — Generating response (cancel state)</div>
+  <div class="panel-shell">
+    <div class="panel-label">AI Chat</div>
+    <div class="messages-area">
+      <div class="msg msg-user">Refactor the auth module to OAuth2</div>
+      <div class="msg msg-assistant">
+        I'll restructure the authentication system. Let me start by updating the configuration…
+        <div class="generating-dots"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+
+    <div class="token-bar">
+      <div class="token-stats">
+        <div class="token-stat"><span class="token-stat-label">in</span> 2.4k</div>
+        <div class="token-stat"><span class="token-stat-label">out</span> 312…</div>
+      </div>
+      <div class="token-bar-actions">
+        <button class="token-bar-btn">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9v4h10V9"/><path d="M8 2v8M5 5l3-3 3 3"/></svg>
+          Export
+        </button>
+      </div>
+    </div>
+
+    <div class="composer-wrapper">
+      <div class="composer">
+        <textarea class="composer-input" placeholder="Ask anything…" rows="1" disabled></textarea>
+        <div class="composer-actions">
+          <div class="composer-actions-left">
+            <button class="icon-btn" disabled>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 8.2l-5.7 5.7a3.5 3.5 0 01-5-5L9 3.3a2.3 2.3 0 013.3 3.3L6.7 12.2a1.2 1.2 0 01-1.7-1.7L10.5 5"/></svg>
+            </button>
+            <button class="model-selector">
+              claude-4-sonnet
+              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 3.5L5 6.5l2.5-3"/></svg>
+            </button>
+          </div>
+          <div class="composer-actions-right">
+            <button class="send-btn cancel">
+              <svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="4" width="8" height="8" rx="1.5"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     VARIANT 3: DARK — Slash command picker open
+     ════════════════════════════════════════════════════════ -->
+<div>
+  <div class="variant-label">DARK — Slash command picker</div>
+  <div class="panel-shell">
+    <div class="panel-label">AI Chat</div>
+    <div class="messages-area">
+      <div class="msg msg-assistant">
+        Sure, I can help with that. What would you like me to do?
+      </div>
+    </div>
+
+    <div class="composer-wrapper" style="position: relative;">
+      <!-- Slash command picker (no icons, no header — matches implementation) -->
+      <div class="picker-dropdown">
+        <div class="picker-item selected">
+          <div class="picker-item-text">
+            <div class="picker-item-name"><span>/</span>explain</div>
+            <div class="picker-item-desc">Explain selected code in detail</div>
+          </div>
+        </div>
+        <div class="picker-item">
+          <div class="picker-item-text">
+            <div class="picker-item-name"><span>/</span>edit</div>
+            <div class="picker-item-desc">Edit code with instructions</div>
+          </div>
+        </div>
+        <div class="picker-item">
+          <div class="picker-item-text">
+            <div class="picker-item-name"><span>/</span>fix</div>
+            <div class="picker-item-desc">Fix bugs and errors in code</div>
+          </div>
+        </div>
+        <div class="picker-item">
+          <div class="picker-item-text">
+            <div class="picker-item-name"><span>/</span>tests</div>
+            <div class="picker-item-desc">Generate unit tests for code</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <textarea class="composer-input" placeholder="Ask anything…" rows="1">/e</textarea>
+        <div class="composer-actions">
+          <div class="composer-actions-left">
+            <button class="icon-btn">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 8.2l-5.7 5.7a3.5 3.5 0 01-5-5L9 3.3a2.3 2.3 0 013.3 3.3L6.7 12.2a1.2 1.2 0 01-1.7-1.7L10.5 5"/></svg>
+            </button>
+            <button class="model-selector">
+              claude-4-sonnet
+              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 3.5L5 6.5l2.5-3"/></svg>
+            </button>
+          </div>
+          <div class="composer-actions-right">
+            <span class="keyboard-hint">↑↓ navigate · ⏎ select</span>
+            <button class="send-btn disabled">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l10-5L3 3v4l6 1-6 1z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     VARIANT 4: DARK — Context mention picker
+     ════════════════════════════════════════════════════════ -->
+<div>
+  <div class="variant-label">DARK — Context mention picker</div>
+  <div class="panel-shell">
+    <div class="panel-label">AI Chat</div>
+    <div class="messages-area">
+      <div class="msg msg-assistant">
+        I can help analyze that file. Which one are you referring to?
+      </div>
+    </div>
+
+    <div class="composer-wrapper" style="position: relative;">
+      <!-- Mention picker (uses 📄 emoji, no header — matches implementation) -->
+      <div class="picker-dropdown">
+        <div class="picker-item selected">
+          <span class="picker-item-emoji">📄</span>
+          <div class="picker-item-text">
+            <div class="picker-item-name">auth-service.ts</div>
+            <div class="picker-item-desc">src/services/auth-service.ts</div>
+          </div>
+        </div>
+        <div class="picker-item">
+          <span class="picker-item-emoji">📄</span>
+          <div class="picker-item-text">
+            <div class="picker-item-name">auth-middleware.ts</div>
+            <div class="picker-item-desc">src/middleware/auth-middleware.ts</div>
+          </div>
+        </div>
+        <div class="picker-item">
+          <span class="picker-item-emoji">📄</span>
+          <div class="picker-item-text">
+            <div class="picker-item-name">auth.config.ts</div>
+            <div class="picker-item-desc">src/config/auth.config.ts</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <textarea class="composer-input" rows="1">Explain the logic in @auth</textarea>
+        <div class="composer-actions">
+          <div class="composer-actions-left">
+            <button class="icon-btn">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 8.2l-5.7 5.7a3.5 3.5 0 01-5-5L9 3.3a2.3 2.3 0 013.3 3.3L6.7 12.2a1.2 1.2 0 01-1.7-1.7L10.5 5"/></svg>
+            </button>
+            <button class="model-selector">
+              claude-4-sonnet
+              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 3.5L5 6.5l2.5-3"/></svg>
+            </button>
+          </div>
+          <div class="composer-actions-right">
+            <span class="keyboard-hint">↑↓ navigate · ⏎ select</span>
+            <button class="send-btn disabled">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l10-5L3 3v4l6 1-6 1z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     VARIANT 5: DARK — Empty + focused (hints visible)
+     ════════════════════════════════════════════════════════ -->
+<div>
+  <div class="variant-label">DARK — Empty + focused (hints visible)</div>
+  <div class="panel-shell">
+    <div class="panel-label">AI Chat</div>
+    <div class="messages-area">
+      <!-- empty -->
+    </div>
+
+    <div class="composer-wrapper">
+      <div class="composer" style="border-color: var(--composer-border-focus); box-shadow: 0 0 0 2px var(--accent-glow);">
+        <textarea class="composer-input" placeholder="Ask anything… (@ to mention, / for commands)" rows="1"></textarea>
+        <div class="composer-actions">
+          <div class="composer-actions-left">
+            <button class="icon-btn" data-tooltip="Attach files">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 8.2l-5.7 5.7a3.5 3.5 0 01-5-5L9 3.3a2.3 2.3 0 013.3 3.3L6.7 12.2a1.2 1.2 0 01-1.7-1.7L10.5 5"/></svg>
+            </button>
+            <button class="model-selector">
+              claude-4-sonnet
+              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 3.5L5 6.5l2.5-3"/></svg>
+            </button>
+          </div>
+          <div class="composer-actions-right">
+            <span class="keyboard-hint">⏎ send · ⌘⏎ newline</span>
+            <button class="send-btn disabled">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l10-5L3 3v4l6 1-6 1z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     VARIANT 5b: DARK — Empty + unfocused (no hints)
+     ════════════════════════════════════════════════════════ -->
+<div>
+  <div class="variant-label">DARK — Empty + unfocused (no hints)</div>
+  <div class="panel-shell">
+    <div class="panel-label">AI Chat</div>
+    <div class="messages-area">
+      <!-- empty -->
+    </div>
+
+    <div class="composer-wrapper">
+      <div class="composer">
+        <textarea class="composer-input" placeholder="Ask anything… (@ to mention, / for commands)" rows="1"></textarea>
+        <div class="composer-actions">
+          <div class="composer-actions-left">
+            <button class="icon-btn" data-tooltip="Attach files">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 8.2l-5.7 5.7a3.5 3.5 0 01-5-5L9 3.3a2.3 2.3 0 013.3 3.3L6.7 12.2a1.2 1.2 0 01-1.7-1.7L10.5 5"/></svg>
+            </button>
+            <button class="model-selector">
+              claude-4-sonnet
+              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 3.5L5 6.5l2.5-3"/></svg>
+            </button>
+          </div>
+          <div class="composer-actions-right">
+            <button class="send-btn disabled">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l10-5L3 3v4l6 1-6 1z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     VARIANT 6: LIGHT THEME
+     ════════════════════════════════════════════════════════ -->
+<div>
+  <div class="variant-label">LIGHT — With file chips</div>
+  <div class="panel-shell light-theme">
+    <div class="panel-label">AI Chat</div>
+    <div class="messages-area">
+      <div class="msg msg-user">
+        Review <a class="mention-pill" href="#">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 1.5h7l3 3V14.5H3z"/><path d="M10 1.5v3h3"/></svg>
+          utils.ts
+        </a> for performance issues
+      </div>
+      <div class="msg msg-assistant">
+        I found a few areas to optimize. The <code>debounce</code> function recreates closures unnecessarily…
+      </div>
+    </div>
+
+    <div class="token-bar">
+      <div class="token-stats">
+        <div class="token-stat"><span class="token-stat-label">in</span> 890</div>
+        <div class="token-stat"><span class="token-stat-label">out</span> 1.1k</div>
+      </div>
+      <div class="token-bar-actions">
+        <button class="token-bar-btn">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9v4h10V9"/><path d="M8 2v8M5 5l3-3 3 3"/></svg>
+          Export
+        </button>
+      </div>
+    </div>
+
+    <div class="composer-wrapper">
+      <div class="composer">
+        <textarea class="composer-input" placeholder="Ask anything… (@ to mention, / for commands)" rows="1">Also check</textarea>
+
+        <div class="composer-chips">
+          <div class="file-chip">
+            <svg class="file-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 1.5h7l3 3V14.5H3z"/><path d="M10 1.5v3h3"/></svg>
+            <span class="file-chip-name">performance.ts</span>
+            <button class="file-chip-remove">
+              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2l6 6M8 2l-6 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="composer-actions">
+          <div class="composer-actions-left">
+            <button class="icon-btn" data-tooltip="Attach files">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 8.2l-5.7 5.7a3.5 3.5 0 01-5-5L9 3.3a2.3 2.3 0 013.3 3.3L6.7 12.2a1.2 1.2 0 01-1.7-1.7L10.5 5"/></svg>
+            </button>
+            <button class="model-selector">
+              gpt-4o
+              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 3.5L5 6.5l2.5-3"/></svg>
+            </button>
+          </div>
+          <div class="composer-actions-right">
+            <span class="keyboard-hint">⏎ send · ⌘⏎ newline</span>
+            <button class="send-btn">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l10-5L3 3v4l6 1-6 1z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     VARIANT 7: DARK — File drop overlay
+     ════════════════════════════════════════════════════════ -->
+<div>
+  <div class="variant-label">DARK — File drop overlay</div>
+  <div class="panel-shell" style="position: relative;">
+    <div class="panel-label">AI Chat</div>
+    <div class="messages-area">
+      <div class="msg msg-user">Help me debug this</div>
+      <div class="msg msg-assistant">Sure, can you share the relevant files?</div>
+    </div>
+
+    <div class="composer-wrapper">
+      <div class="composer">
+        <textarea class="composer-input" placeholder="Ask anything…" rows="1"></textarea>
+        <div class="composer-actions">
+          <div class="composer-actions-left">
+            <button class="icon-btn">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 8.2l-5.7 5.7a3.5 3.5 0 01-5-5L9 3.3a2.3 2.3 0 013.3 3.3L6.7 12.2a1.2 1.2 0 01-1.7-1.7L10.5 5"/></svg>
+            </button>
+            <button class="model-selector">
+              claude-4-sonnet
+              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 3.5L5 6.5l2.5-3"/></svg>
+            </button>
+          </div>
+          <div class="composer-actions-right">
+            <button class="send-btn disabled">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l10-5L3 3v4l6 1-6 1z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drop overlay -->
+    <div class="drop-overlay">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+        <path d="M14 8.2l-5.7 5.7a3.5 3.5 0 01-5-5L9 3.3a2.3 2.3 0 013.3 3.3L6.7 12.2a1.2 1.2 0 01-1.7-1.7L10.5 5"/>
+      </svg>
+      <span>Drop files here</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

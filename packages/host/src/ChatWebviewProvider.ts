@@ -14,8 +14,8 @@ import { generateHtml, generateNonce } from "./html.js";
 import { StreamingChatHandler } from "./streaming.js";
 import { createStorage } from "./storage/index.js";
 import { MCPManager } from "./mcp.js";
-import type { ChatProviderConfig, ChatTemplate, SlashCommandHandler } from "./types.js";
-import type { ChatContentPart } from "@vscode-ai-chat/core";
+import type { ChatProviderConfig, ChatTemplate, SlashCommandHandler, SlashCommandContext } from "./types.js";
+import type { ChatContentPart, TokenUsage } from "@vscode-ai-chat/core";
 
 /**
  * Minimal VS Code types to avoid hard dependency on the vscode module at compile time.
@@ -56,7 +56,7 @@ export class ChatWebviewProvider {
   private storageLoaded = false;
   private mcpManager: MCPManager | null = null;
   private mcpInitialized = false;
-  private activeModel: import("ai").LanguageModel;
+  private activeModel: import("ai").LanguageModel | undefined;
   private pendingApprovals = new Map<
     string,
     { resolve: (result: { approved: boolean; feedback?: string }) => void }
@@ -293,6 +293,27 @@ export class ChatWebviewProvider {
     thread.messages.push(message);
     thread.updatedAt = new Date();
 
+    // In manual mode (no model), just persist and notify — extension handles streaming
+    if (!this.activeModel) {
+      await this.persistThread(thread);
+      this.postThreadList();
+      return;
+    }
+
+    // Check onMessage hook before routing to LLM
+    if (this.config.onMessage) {
+      const userText = message.content
+        .filter((p): p is { type: "text"; text: string } => p.type === "text")
+        .map((p) => p.text)
+        .join("\n");
+      const result = await this.config.onMessage(userText, thread);
+      if (result !== "passthrough") {
+        await this.persistThread(thread);
+        this.postThreadList();
+        return;
+      }
+    }
+
     try {
       let tools = await this.getMergedTools();
       // Merge template tools if active
@@ -329,8 +350,11 @@ export class ChatWebviewProvider {
     }
   }
 
-  private handleCancelGeneration(): void {
+  private async handleCancelGeneration(): Promise<void> {
     this.streamingHandler.cancel();
+    if (this.config.onCancel) {
+      await this.config.onCancel();
+    }
   }
 
   private async handleCreateThread(): Promise<void> {
@@ -454,6 +478,9 @@ export class ChatWebviewProvider {
   }
 
   private async handleSendMessageFromHistory(thread: ChatThread): Promise<void> {
+    // In manual mode, no auto-regeneration
+    if (!this.activeModel) return;
+
     try {
       let tools = await this.getMergedTools();
       if (this.activeTemplate?.tools) {
@@ -661,8 +688,25 @@ export class ChatWebviewProvider {
       return;
     }
 
+    const context: SlashCommandContext = {
+      threadId: this.activeThreadId,
+      respond: (text: string) => {
+        this.postSystemMessage([{ type: "text", text }]);
+      },
+      respondContent: (content: ChatContentPart[]) => {
+        this.postSystemMessage(content);
+      },
+      progress: (text: string) => {
+        this.postToWebview({
+          type: "streamProgress",
+          threadId: this.activeThreadId,
+          text,
+        });
+      },
+    };
+
     try {
-      const result = await handler.execute(args, { threadId: this.activeThreadId });
+      const result = await handler.execute(args, context);
       if (typeof result === "string" && result.length > 0) {
         // Post the result as a system message
         this.postSystemMessage([{ type: "text", text: result }]);
@@ -803,9 +847,115 @@ export class ChatWebviewProvider {
     return this.config.models ? Object.keys(this.config.models) : [];
   }
 
-  /** Get the currently active model */
-  getActiveModel(): import("ai").LanguageModel {
+  /** Get the currently active model (undefined in manual mode) */
+  getActiveModel(): import("ai").LanguageModel | undefined {
     return this.activeModel;
+  }
+
+  // ── Manual streaming API ──────────────────────────────────────────
+  // These methods allow extensions to drive the chat UI without going through streamText().
+  // Use these in "manual mode" (no model configured) to push streaming content from
+  // your own LLM backend, SDK bridge, or any other async data source.
+
+  private manualStreamingMessageId: string | null = null;
+
+  /**
+   * Begin a new assistant message stream.
+   * Call pushStreamDelta() to send content, then pushStreamEnd() to finish.
+   * Returns the generated message ID.
+   */
+  pushStreamStart(): string {
+    const messageId = `manual-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    this.manualStreamingMessageId = messageId;
+    this.postToWebview({
+      type: "streamStart",
+      threadId: this.activeThreadId,
+      messageId,
+    });
+    return messageId;
+  }
+
+  /**
+   * Push a content delta to the current manual stream.
+   * Typically called with { type: "text", text: "..." } for text chunks.
+   */
+  pushStreamDelta(delta: ChatContentPart): void {
+    if (!this.manualStreamingMessageId) {
+      console.warn("[vscode-ai-chat] pushStreamDelta called without an active stream. Call pushStreamStart() first.");
+      return;
+    }
+    this.postToWebview({
+      type: "streamDelta",
+      threadId: this.activeThreadId,
+      messageId: this.manualStreamingMessageId,
+      delta,
+    });
+  }
+
+  /**
+   * End the current manual stream and persist the completed message.
+   */
+  pushStreamEnd(usage?: TokenUsage): void {
+    if (!this.manualStreamingMessageId) {
+      console.warn("[vscode-ai-chat] pushStreamEnd called without an active stream.");
+      return;
+    }
+    this.postToWebview({
+      type: "streamEnd",
+      threadId: this.activeThreadId,
+      messageId: this.manualStreamingMessageId,
+      usage,
+    });
+    this.manualStreamingMessageId = null;
+  }
+
+  /**
+   * Signal an error in the current manual stream.
+   */
+  pushStreamError(error: string): void {
+    this.postToWebview({
+      type: "streamError",
+      threadId: this.activeThreadId,
+      error,
+    });
+    this.manualStreamingMessageId = null;
+  }
+
+  /**
+   * Post a transient progress indicator to the chat.
+   * Progress messages don't persist in the thread history.
+   */
+  pushProgress(text: string): void {
+    this.postToWebview({
+      type: "streamProgress",
+      threadId: this.activeThreadId,
+      text,
+      messageId: this.manualStreamingMessageId ?? undefined,
+    });
+  }
+
+  // ── Programmatic message & command API ──────────────────────────
+
+  /**
+   * Programmatically send a user message as if the user typed it.
+   * In managed mode (model configured), this triggers LLM streaming.
+   * In manual mode, this adds the message to the thread for the extension to handle.
+   */
+  sendUserMessage(text: string): void {
+    const message: ChatMessage = {
+      id: `prog-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      role: "user",
+      content: [{ type: "text", text }],
+      createdAt: new Date(),
+    };
+    this.handleSendMessage(message);
+  }
+
+  /**
+   * Programmatically execute a registered slash command.
+   */
+  executeSlashCommand(name: string, args: string = ""): void {
+    this.handleSlashCommand(name, args);
   }
 
   private async persistThread(thread: ChatThread): Promise<void> {

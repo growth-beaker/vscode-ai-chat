@@ -1,5 +1,9 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { useExternalStoreRuntime } from "@assistant-ui/react";
+import {
+  useExternalStoreRuntime,
+  SimpleTextAttachmentAdapter,
+  type AssistantRuntime,
+} from "@assistant-ui/react";
 import type {
   ChatMessage,
   ChatConfig,
@@ -47,7 +51,26 @@ export interface PendingToolCall {
   args: unknown;
 }
 
-export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}) {
+export interface UseVSCodeRuntimeReturn {
+  runtime: AssistantRuntime;
+  chatConfig: Partial<ChatConfig>;
+  switchModel: (modelId: string) => void;
+  pendingToolCalls: PendingToolCall[];
+  sendToolApproval: (toolCallId: string, approved: boolean, feedback?: string) => void;
+  templates: Array<{ id: string; label: string }>;
+  selectTemplate: (templateId: string) => void;
+  sendUserAction: (actionId: string, result: unknown) => void;
+  exportThread: (format: "json" | "markdown") => void;
+  slashCommands: Array<{ name: string; description: string }>;
+  sendSlashCommand: (command: string, args?: string) => void;
+  dropFiles: (files: Array<{ name: string; mimeType: string; size: number; data: string }>) => void;
+  requestContextMention: (mentionType: "file" | "workspace" | "symbol", query: string) => void;
+  mentionItems: Array<{ label: string; description?: string; value: string }>;
+  progressText: string | null;
+  lastUsage: { promptTokens: number; completionTokens: number; totalTokens: number } | null;
+}
+
+export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}): UseVSCodeRuntimeReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const activeThreadId = useRef<string>("default");
@@ -67,6 +90,12 @@ export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}) {
 
   // Available slash commands
   const [slashCommands, setSlashCommands] = useState<Array<{ name: string; description: string }>>([]);
+
+  // Context mention results
+  const [mentionItems, setMentionItems] = useState<Array<{ label: string; description?: string; value: string }>>([]);
+
+  // Progress text from slash commands
+  const [progressText, setProgressText] = useState<string | null>(null);
 
   // Token usage from last response
   const [lastUsage, setLastUsage] = useState<{ promptTokens: number; completionTokens: number; totalTokens: number } | null>(null);
@@ -94,6 +123,7 @@ export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}) {
       }
       case "streamStart": {
         setIsRunning(true);
+        setProgressText(null);
         streamingMessageRef.current = {
           id: event.messageId,
           role: "assistant",
@@ -128,6 +158,7 @@ export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}) {
       }
       case "streamEnd": {
         setIsRunning(false);
+        setProgressText(null);
         streamingMessageRef.current = null;
         if (event.usage) {
           setLastUsage(event.usage);
@@ -179,8 +210,12 @@ export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}) {
         setSlashCommands(event.commands);
         break;
       }
+      case "streamProgress": {
+        setProgressText(event.text);
+        break;
+      }
       case "contextMentionResult": {
-        // Handled by consumers via the contextMentionResult callback
+        setMentionItems(event.items);
         break;
       }
     }
@@ -209,6 +244,8 @@ export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}) {
     [options.dataParts],
   );
 
+  const attachmentAdapter = useMemo(() => new SimpleTextAttachmentAdapter(), []);
+
   const runtime = useExternalStoreRuntime({
     messages,
     convertMessage,
@@ -234,17 +271,7 @@ export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}) {
         threadId: activeThreadId.current,
       });
     },
-    onEdit: async (message) => {
-      const chatContent = fromAppendContent(
-        message.content as Array<{ type: string; text?: string }>,
-      );
-      postToHost({
-        type: "editMessage",
-        threadId: activeThreadId.current,
-        messageId: message.parentId ?? "",
-        content: chatContent,
-      });
-    },
+    onEdit: undefined,
     onReload: async (parentId) => {
       if (parentId) {
         postToHost({
@@ -255,6 +282,7 @@ export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}) {
       }
     },
     adapters: {
+      attachments: attachmentAdapter,
       threadList: {
         threadId: activeThreadId.current,
         threads: threadList.map((t) => ({
@@ -345,6 +373,8 @@ export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}) {
     sendSlashCommand,
     dropFiles,
     requestContextMention,
+    mentionItems,
+    progressText,
     lastUsage,
   };
 }

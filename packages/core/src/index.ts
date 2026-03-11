@@ -54,6 +54,7 @@ export type {
   StreamDeltaEvent,
   StreamEndEvent,
   StreamErrorEvent,
+  StreamProgressEvent,
   ThreadStateEvent,
   ThreadListEvent,
   ToolCallEvent,

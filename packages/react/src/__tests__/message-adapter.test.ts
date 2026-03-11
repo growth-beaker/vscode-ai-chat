@@ -36,7 +36,7 @@ describe("toThreadMessageLike", () => {
       ],
     };
     const result = toThreadMessageLike(msg);
-    const part = (result.content as Array<Record<string, unknown>>)[0]!;
+    const part = (result.content as unknown as Array<Record<string, unknown>>)[0]!;
     expect(part.type).toBe("tool-call");
     expect(part.toolCallId).toBe("tc1");
     expect(part.toolName).toBe("readFile");
@@ -57,7 +57,7 @@ describe("toThreadMessageLike", () => {
       ],
     };
     const result = toThreadMessageLike(msg);
-    const part = (result.content as Array<Record<string, unknown>>)[0]!;
+    const part = (result.content as unknown as Array<Record<string, unknown>>)[0]!;
     expect(part.type).toBe("tool-call");
     expect(part.toolCallId).toBe("tc1");
     expect(part.result).toBe("file contents");
@@ -76,7 +76,7 @@ describe("toThreadMessageLike", () => {
       ],
     };
     const result = toThreadMessageLike(msg);
-    const part = (result.content as Array<Record<string, unknown>>)[0]!;
+    const part = (result.content as unknown as Array<Record<string, unknown>>)[0]!;
     expect(part.type).toBe("text");
     expect(part.text).toBe('[code-diff]: {"before":"a","after":"b"}');
   });
@@ -109,7 +109,7 @@ describe("toThreadMessageLike", () => {
       ],
     };
     const result = toThreadMessageLike(msg);
-    const part = (result.content as Array<Record<string, unknown>>)[0]!;
+    const part = (result.content as unknown as Array<Record<string, unknown>>)[0]!;
     expect(part.type).toBe("image");
     expect(part.image).toBe("data:image/png;base64,iVBORw0KGgo=");
   });
@@ -123,7 +123,7 @@ describe("toThreadMessageLike", () => {
       ],
     };
     const result = toThreadMessageLike(msg);
-    const part = (result.content as Array<Record<string, unknown>>)[0]!;
+    const part = (result.content as unknown as Array<Record<string, unknown>>)[0]!;
     expect(part.type).toBe("image");
     expect(part.image).toBe("https://example.com/img.png");
   });
@@ -137,7 +137,7 @@ describe("toThreadMessageLike", () => {
       ],
     };
     const result = toThreadMessageLike(msg);
-    const part = (result.content as Array<Record<string, unknown>>)[0]!;
+    const part = (result.content as unknown as Array<Record<string, unknown>>)[0]!;
     expect(part.type).toBe("image");
     expect(part.image).toBe("");
   });
@@ -151,7 +151,7 @@ describe("toThreadMessageLike", () => {
       ],
     };
     const result = toThreadMessageLike(msg);
-    const part = (result.content as Array<Record<string, unknown>>)[0]!;
+    const part = (result.content as unknown as Array<Record<string, unknown>>)[0]!;
     expect(part.type).toBe("text");
     expect(part.text).toContain("**main.ts:**");
     expect(part.text).toContain("const x = 1;");
@@ -167,7 +167,7 @@ describe("toThreadMessageLike", () => {
       ],
     };
     const result = toThreadMessageLike(msg);
-    const part = (result.content as Array<Record<string, unknown>>)[0]!;
+    const part = (result.content as unknown as Array<Record<string, unknown>>)[0]!;
     expect(part.type).toBe("text");
     expect(part.text).toContain("**photo.jpg**");
     expect(part.text).toContain("2.0 KB");
@@ -180,7 +180,7 @@ describe("toThreadMessageLike", () => {
       role: "user",
       content: [{ type: "file", name: "tiny.bin", mimeType: "application/octet-stream", size: 500 }],
     };
-    const partBytes = (toThreadMessageLike(msgBytes).content as Array<Record<string, unknown>>)[0]!;
+    const partBytes = (toThreadMessageLike(msgBytes).content as unknown as Array<Record<string, unknown>>)[0]!;
     expect(partBytes.text).toContain("500 B");
 
     // KB
@@ -189,7 +189,7 @@ describe("toThreadMessageLike", () => {
       role: "user",
       content: [{ type: "file", name: "medium.bin", mimeType: "application/octet-stream", size: 5120 }],
     };
-    const partKB = (toThreadMessageLike(msgKB).content as Array<Record<string, unknown>>)[0]!;
+    const partKB = (toThreadMessageLike(msgKB).content as unknown as Array<Record<string, unknown>>)[0]!;
     expect(partKB.text).toContain("5.0 KB");
 
     // MB
@@ -198,7 +198,7 @@ describe("toThreadMessageLike", () => {
       role: "user",
       content: [{ type: "file", name: "big.bin", mimeType: "application/octet-stream", size: 3 * 1024 * 1024 }],
     };
-    const partMB = (toThreadMessageLike(msgMB).content as Array<Record<string, unknown>>)[0]!;
+    const partMB = (toThreadMessageLike(msgMB).content as unknown as Array<Record<string, unknown>>)[0]!;
     expect(partMB.text).toContain("3.0 MB");
   });
 });
@@ -265,7 +265,7 @@ describe("createMessageConverter", () => {
       ],
     };
     const result = converter(msg);
-    const part = (result.content as Array<Record<string, unknown>>)[0]!;
+    const part = (result.content as unknown as Array<Record<string, unknown>>)[0]!;
     expect(part.type).toBe("ui");
     expect(part.display).toBeDefined();
   });
@@ -288,7 +288,7 @@ describe("createMessageConverter", () => {
       ],
     };
     const result = converter(msg);
-    const part = (result.content as Array<Record<string, unknown>>)[0]!;
+    const part = (result.content as unknown as Array<Record<string, unknown>>)[0]!;
     expect(part.type).toBe("text");
     expect(part.text).toBe('[code-diff]: {"before":"a"}');
   });
@@ -309,7 +309,7 @@ describe("createMessageConverter", () => {
       ],
     };
     const result = converter(msg);
-    const parts = result.content as Array<Record<string, unknown>>;
+    const parts = result.content as unknown as Array<Record<string, unknown>>;
     expect(parts).toHaveLength(3);
     expect(parts[0]!.type).toBe("text");
     expect(parts[1]!.type).toBe("ui");

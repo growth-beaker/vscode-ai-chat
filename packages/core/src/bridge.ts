@@ -61,6 +61,9 @@ export function createHostSender(postMessage: (msg: HostToWebviewEvent) => void)
     streamError(threadId: string, error: string) {
       postMessage({ type: "streamError", threadId, error });
     },
+    streamProgress(threadId: string, text: string, messageId?: string) {
+      postMessage({ type: "streamProgress", threadId, text, messageId });
+    },
     threadState(thread: ChatThread) {
       postMessage({ type: "threadState", thread });
     },

@@ -25,6 +25,7 @@ const HOST_TO_WEBVIEW_TYPES = new Set([
   "streamDelta",
   "streamEnd",
   "streamError",
+  "streamProgress",
   "threadState",
   "threadList",
   "toolCall",

@@ -12,8 +12,14 @@ export {
   type DataPartRenderers,
 } from "./runtime/message-adapter.js";
 export { ThreadList } from "./components/ThreadList.js";
-export { ModelSelector, type ModelSelectorProps } from "./components/ModelSelector.js";
-export { TokenUsage, type TokenUsageProps } from "./components/TokenUsage.js";
-export { ExportButton, type ExportButtonProps } from "./components/ExportButton.js";
 export { FileDropZone, type FileDropZoneProps } from "./components/FileDropZone.js";
-export { ChatToolbar, type ChatToolbarProps } from "./components/ChatToolbar.js";
+export { SlashCommandPicker, type SlashCommandPickerProps } from "./components/SlashCommandPicker.js";
+export {
+  ContextMentionPicker,
+  type ContextMentionPickerProps,
+  type MentionItem,
+} from "./components/ContextMentionPicker.js";
+export { Composer, type ComposerProps } from "./components/Composer.js";
+export { MarkdownText } from "./components/MarkdownText.js";
+export { MermaidDiagram } from "./components/MermaidDiagram.js";
+export { type UseVSCodeRuntimeReturn } from "./runtime/useVSCodeRuntime.js";

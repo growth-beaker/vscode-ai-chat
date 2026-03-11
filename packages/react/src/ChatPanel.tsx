@@ -1,10 +1,15 @@
+import { useMemo, type ComponentType } from "react";
 import { AssistantRuntimeProvider, Thread } from "@assistant-ui/react";
 import { useVSCodeRuntime, type UseVSCodeRuntimeOptions } from "./runtime/useVSCodeRuntime.js";
 import { ThreadList } from "./components/ThreadList.js";
-import { ModelSelector } from "./components/ModelSelector.js";
-import { ChatToolbar } from "./components/ChatToolbar.js";
+
 import { FileDropZone } from "./components/FileDropZone.js";
-import type { ComponentType } from "react";
+import { SlashCommandPicker } from "./components/SlashCommandPicker.js";
+import { ContextMentionPicker } from "./components/ContextMentionPicker.js";
+import { Composer } from "./components/Composer.js";
+import { ComposerConfigProvider } from "./components/ComposerContext.js";
+import { MarkdownText } from "./components/MarkdownText.js";
+
 import type { DataPartRenderers } from "./runtime/message-adapter.js";
 
 export interface ChatPanelProps {
@@ -18,14 +23,18 @@ export interface ChatPanelProps {
   vscodeApi?: UseVSCodeRuntimeOptions["vscodeApi"];
   /** Whether to show the thread list sidebar */
   showThreadList?: boolean;
-  /** Available model IDs for the model selector */
+  /** Available model IDs for the model selector (shown in composer when 2+) */
   models?: string[];
   /** Show export button in toolbar */
   showExport?: boolean;
   /** Show token usage in toolbar */
   showTokenUsage?: boolean;
-  /** Enable file drag-and-drop */
+  /** Enable file attachments (attach button + drag-and-drop) */
   enableFileDrop?: boolean;
+  /** Enable slash command picker (requires host to have commands configured) */
+  enableSlashCommands?: boolean;
+  /** Enable @mention picker (requires host to have contextMentionProvider) */
+  enableMentions?: boolean;
 }
 
 export function ChatPanel({
@@ -38,11 +47,47 @@ export function ChatPanel({
   showExport,
   showTokenUsage,
   enableFileDrop,
+  enableSlashCommands,
+  enableMentions,
 }: ChatPanelProps) {
-  const { runtime, chatConfig, switchModel, exportThread, dropFiles, lastUsage } =
-    useVSCodeRuntime({ vscodeApi, dataParts });
+  const {
+    runtime,
+    chatConfig,
+    switchModel,
+    exportThread,
+    dropFiles,
+    lastUsage,
+    slashCommands,
+    sendSlashCommand,
+    requestContextMention,
+    mentionItems,
+  } = useVSCodeRuntime({ vscodeApi, dataParts });
 
-  const showToolbar = showExport || (showTokenUsage && lastUsage);
+  const showModelSelector = models && models.length > 1;
+
+  // Stable component identity — Composer reads changing values (activeModel)
+  // from ComposerConfigContext so the component reference never changes.
+  const composerConfig = useMemo(
+    () => ({ components: { Composer } }),
+    [],
+  );
+
+  const composerContextValue = useMemo(
+    () => ({
+      showAttach: enableFileDrop,
+      models: showModelSelector ? models : undefined,
+      activeModel: chatConfig.activeModel,
+      onModelSwitch: showModelSelector ? switchModel : undefined,
+      usage: showTokenUsage ? lastUsage : undefined,
+      onExport: showExport ? exportThread : undefined,
+    }),
+    [enableFileDrop, showModelSelector, models, chatConfig.activeModel, switchModel, showTokenUsage, lastUsage, showExport, exportThread],
+  );
+
+  const assistantMessageConfig = useMemo(
+    () => ({ components: { Text: MarkdownText } }),
+    [],
+  );
 
   const threadContent = (
     <>
@@ -50,20 +95,13 @@ export function ChatPanel({
         <ToolUI key={i} />
       ))}
       {showThreadList && <ThreadList />}
-      {models && models.length > 1 && (
-        <ModelSelector
-          models={models}
-          activeModel={chatConfig.activeModel}
-          onSwitch={switchModel}
-        />
+      <Thread assistantMessage={assistantMessageConfig} {...composerConfig} />
+      {enableSlashCommands && slashCommands.length > 0 && (
+        <SlashCommandPicker commands={slashCommands} onSelect={sendSlashCommand} />
       )}
-      {showToolbar && (
-        <ChatToolbar
-          usage={showTokenUsage ? lastUsage : undefined}
-          onExport={showExport ? exportThread : undefined}
-        />
+      {enableMentions && (
+        <ContextMentionPicker onSearch={requestContextMention} items={mentionItems} />
       )}
-      <Thread />
     </>
   );
 
@@ -75,7 +113,11 @@ export function ChatPanel({
 
   return (
     <div className={`aui-root dark ${className ?? ""}`.trim()} style={{ height: "100vh" }}>
-      <AssistantRuntimeProvider runtime={runtime}>{content}</AssistantRuntimeProvider>
+      <AssistantRuntimeProvider runtime={runtime}>
+        <ComposerConfigProvider value={composerContextValue}>
+          {content}
+        </ComposerConfigProvider>
+      </AssistantRuntimeProvider>
     </div>
   );
 }
