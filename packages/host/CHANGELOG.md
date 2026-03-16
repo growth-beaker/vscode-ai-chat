@@ -1,5 +1,11 @@
 # @growthbeaker/ai-chat-host
 
+## 1.0.3
+
+### Patch Changes
+
+- Fix GlobalStateStorage.loadThread() not converting date strings back to Date objects
+
 ## 1.0.1
 
 ### Patch Changes
