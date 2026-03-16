@@ -23,7 +23,12 @@ export class GlobalStateStorage implements ThreadStorage {
   }
 
   async loadThread(threadId: string): Promise<ChatThread | undefined> {
-    return this.globalState.get<ChatThread>(threadKey(threadId));
+    const thread = this.globalState.get<ChatThread>(threadKey(threadId));
+    if (!thread) return undefined;
+    // Memento deserializes JSON, so Date objects come back as ISO strings
+    thread.createdAt = new Date(thread.createdAt);
+    thread.updatedAt = new Date(thread.updatedAt);
+    return thread;
   }
 
   async saveThread(thread: ChatThread): Promise<void> {
