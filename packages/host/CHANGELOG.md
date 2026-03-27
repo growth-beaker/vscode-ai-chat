@@ -1,5 +1,13 @@
 # @growthbeaker/ai-chat-host
 
+## 1.0.5
+
+### Patch Changes
+
+- Fix threadState handler killing active streams and add waitForReady() method
+  - Fixed regression in React threadState handler where receiving a threadState event during an active stream would reset streaming state, causing the stream to be lost. The handler now preserves the active streaming message when the thread ID matches and only resets streaming state on thread switches.
+  - Added `waitForReady()` method to ChatWebviewProvider that returns a Promise resolving when the webview sends its ready event. Resolves immediately if already ready. Resets on webview recreation.
+
 ## 1.0.4
 
 ### Patch Changes

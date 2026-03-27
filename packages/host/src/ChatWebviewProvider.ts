@@ -57,6 +57,8 @@ export class ChatWebviewProvider {
   private mcpManager: MCPManager | null = null;
   private mcpInitialized = false;
   private activeModel: import("ai").LanguageModel | undefined;
+  private isReady = false;
+  private readyResolvers: Array<() => void> = [];
   private pendingApprovals = new Map<
     string,
     { resolve: (result: { approved: boolean; feedback?: string }) => void }
@@ -98,6 +100,7 @@ export class ChatWebviewProvider {
    */
   resolveWebviewView(webviewView: VSCodeWebviewView, _context?: unknown, _token?: unknown): void {
     this.view = webviewView;
+    this.isReady = false;
 
     webviewView.webview.options = {
       enableScripts: true,
@@ -137,6 +140,18 @@ export class ChatWebviewProvider {
   /** Whether the LLM is currently streaming a response */
   get isStreaming(): boolean {
     return this.streamingHandler.isStreaming;
+  }
+
+  /**
+   * Returns a Promise that resolves when the webview has mounted and sent
+   * its "ready" event. Resolves immediately if already ready.
+   * Use this to avoid posting messages before the webview can process them.
+   */
+  waitForReady(): Promise<void> {
+    if (this.isReady) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      this.readyResolvers.push(resolve);
+    });
   }
 
   /** Handle an incoming message from the webview */
@@ -237,6 +252,12 @@ export class ChatWebviewProvider {
         },
       });
     }
+
+    this.isReady = true;
+    for (const resolve of this.readyResolvers) {
+      resolve();
+    }
+    this.readyResolvers = [];
   }
 
   private async loadFromStorage(): Promise<void> {

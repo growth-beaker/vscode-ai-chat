@@ -121,10 +121,16 @@ export function useVSCodeRuntime(options: UseVSCodeRuntimeOptions = {}): UseVSCo
     console.log("[vscode-ai-chat/webview] Received host event:", event.type);
     switch (event.type) {
       case "threadState": {
-        setMessages(event.thread.messages);
+        const isThreadSwitch = event.thread.id !== activeThreadId.current;
+        if (streamingMessageRef.current && !isThreadSwitch) {
+          // Preserve active stream — append it to the updated thread
+          setMessages([...event.thread.messages, streamingMessageRef.current]);
+        } else {
+          setMessages(event.thread.messages);
+          setIsRunning(false);
+          streamingMessageRef.current = null;
+        }
         activeThreadId.current = event.thread.id;
-        setIsRunning(false);
-        streamingMessageRef.current = null;
         break;
       }
       case "threadList": {
