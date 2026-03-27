@@ -1,5 +1,13 @@
 # @growthbeaker/ai-chat-host
 
+## 1.0.4
+
+### Patch Changes
+
+- Fix thread state sync after onMessage returns handled and add postAssistantMessage method
+  - Fixed: when `onMessage` returns `{ handled: true }`, the library now posts `threadState` to the webview so the user message renders immediately. Previously only the thread list was synced, causing the conversation to appear broken in manual mode.
+  - Added: `postAssistantMessage(content)` method to inject a regular assistant message into the thread without system metadata, rendering it like a normal Claude response.
+
 ## 1.0.3
 
 ### Patch Changes

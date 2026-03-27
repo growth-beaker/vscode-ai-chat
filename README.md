@@ -1608,7 +1608,8 @@ new ChatWebviewProvider(extensionUri: vscode.Uri, config: ChatProviderConfig)
 | `getCurrentThread()` | `ChatThread` | Get the currently active thread |
 | `getAllThreads()` | `ChatThread[]` | Get all threads |
 | `getThreadSummaries()` | `ThreadSummary[]` | Get lightweight thread summaries |
-| `postSystemMessage(content)` | `void` | Inject a system message into the current thread |
+| `postSystemMessage(content)` | `void` | Inject a system message into the current thread (with `metadata: { source: "system" }`) |
+| `postAssistantMessage(content)` | `void` | Inject a regular assistant message into the current thread (no system metadata) |
 | `waitForUserAction(actionId)` | `Promise<unknown>` | Wait for user interaction with an action card |
 | `registerTemplate(template)` | `void` | Register a chat template at runtime |
 | `getTemplates()` | `ChatTemplate[]` | Get all registered templates |

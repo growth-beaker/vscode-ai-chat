@@ -317,6 +317,7 @@ export class ChatWebviewProvider {
       }
       if (result !== "passthrough") {
         await this.persistThread(thread);
+        this.postToWebview({ type: "threadState", thread });
         this.postThreadList();
         return;
       }
@@ -828,6 +829,30 @@ export class ChatWebviewProvider {
       content,
       createdAt: new Date(),
       metadata: { source: "system" },
+    };
+    thread.messages.push(message);
+    thread.updatedAt = new Date();
+
+    this.postToWebview({
+      type: "threadState",
+      thread,
+    });
+    this.persistThread(thread);
+  }
+
+  /**
+   * Inject an assistant message into the current chat thread.
+   * Unlike postSystemMessage, this creates a regular assistant message
+   * without the system source metadata, so it renders like a normal
+   * Claude response in the conversation.
+   */
+  postAssistantMessage(content: ChatContentPart[]): void {
+    const thread = this.getCurrentThread();
+    const message: ChatMessage = {
+      id: `ast-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      role: "assistant",
+      content,
+      createdAt: new Date(),
     };
     thread.messages.push(message);
     thread.updatedAt = new Date();
