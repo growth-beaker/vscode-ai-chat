@@ -316,6 +316,12 @@ export class ChatWebviewProvider {
     thread.messages.push(message);
     thread.updatedAt = new Date();
 
+    // Post threadState immediately so the webview renders the user message
+    // before any streaming starts (avoids race with onMessage hooks that
+    // trigger pushStreamStart).
+    this.postToWebview({ type: "threadState", thread });
+    this.postThreadList();
+
     // Check onMessage hook before routing to LLM (runs in both managed and manual mode)
     if (this.config.onMessage) {
       const userText = message.content
@@ -338,8 +344,6 @@ export class ChatWebviewProvider {
       }
       if (result !== "passthrough") {
         await this.persistThread(thread);
-        this.postToWebview({ type: "threadState", thread });
-        this.postThreadList();
         return;
       }
     }
@@ -883,6 +887,40 @@ export class ChatWebviewProvider {
       thread,
     });
     this.persistThread(thread);
+  }
+
+  /**
+   * Trigger an assistant response in manual mode by sending a prompt to the
+   * onMessage hook, WITHOUT adding a user message to the thread or rendering
+   * a user bubble in the chat.
+   *
+   * Use this when you need the assistant to respond without a preceding user
+   * message (e.g., conversation kickoff after welcome content, auto-advancing
+   * to the next step in a multi-step workflow).
+   *
+   * No-op if no onMessage hook is configured.
+   */
+  triggerAssistantResponse(prompt: string): void {
+    if (!this.config.onMessage) return;
+
+    const thread = this.getCurrentThread();
+
+    // Sync webview state before onMessage triggers streaming
+    this.postToWebview({ type: "threadState", thread });
+
+    // Fire-and-forget — the hook routes to the bridge which handles
+    // streaming via pushStreamStart/pushText/pushStreamEnd.
+    // Wrap in .then() so sync throws from onMessage are caught by .catch().
+    Promise.resolve()
+      .then(() => this.config.onMessage!(prompt, thread))
+      .catch((error) => {
+        console.error("[vscode-ai-chat] triggerAssistantResponse onMessage error:", error);
+        this.postToWebview({
+          type: "streamError",
+          threadId: thread.id,
+          error: `onMessage error: ${error instanceof Error ? error.message : String(error)}`,
+        });
+      });
   }
 
   /**

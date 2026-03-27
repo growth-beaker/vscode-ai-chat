@@ -1270,6 +1270,33 @@ provider.executeSlashCommand("run", "my-workflow");
 
 In managed mode, `sendUserMessage()` triggers LLM streaming. In manual mode, the message is added to the thread for your extension to handle.
 
+### Waiting for the Webview
+
+Use `waitForReady()` to ensure the webview has mounted before posting messages. This replaces arbitrary delays after showing the panel.
+
+```typescript
+await vscode.commands.executeCommand("myExtension.chatView.focus");
+await provider.waitForReady();
+
+// Now safe to post messages — the webview is listening
+provider.sendUserMessage("Explain this error");
+```
+
+Resolves immediately if the webview is already ready. Resets automatically when the webview is recreated.
+
+### Triggering Responses Without a User Message
+
+Use `triggerAssistantResponse()` in manual mode to kick off an assistant response without showing a user message bubble. This is useful for conversation kickoffs, auto-advancing multi-step workflows, or any case where Claude should respond without a preceding user action.
+
+```typescript
+// Post welcome content, then trigger Claude's first response
+provider.postAssistantMessage([{ type: "text", text: "Welcome to your risk assessment." }]);
+provider.triggerAssistantResponse("Start with the first risk.");
+// Claude's response streams in naturally — no fake user bubble
+```
+
+The prompt is passed to your `onMessage` hook, which routes it to your bridge for streaming. No user message is added to the thread. No-op if no `onMessage` hook is configured.
+
 ### Dynamic System Prompt
 
 Update the system prompt at runtime without creating a template:
@@ -1630,6 +1657,8 @@ new ChatWebviewProvider(extensionUri: vscode.Uri, config: ChatProviderConfig)
 | `pushProgress(text)` | `void` | Post a transient progress indicator |
 | `setSystemPrompt(prompt)` | `void` | Update the system prompt at runtime (takes effect on next request) |
 | `sendUserMessage(text)` | `void` | Programmatically send a user message |
+| `triggerAssistantResponse(prompt)` | `void` | Trigger an assistant response via `onMessage` without adding a user message to the thread |
+| `waitForReady()` | `Promise<void>` | Wait for the webview to mount and send its ready event; resolves immediately if already ready |
 | `executeSlashCommand(name, args?)` | `void` | Programmatically execute a slash command |
 | `dispose()` | `void` | Clean up resources (cancel streaming, close MCP, dispose subscriptions) |
 

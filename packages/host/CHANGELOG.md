@@ -1,5 +1,20 @@
 # @growthbeaker/ai-chat-host
 
+## 1.1.0
+
+### Minor Changes
+
+- Add triggerAssistantResponse() and waitForReady() methods, fix threadState race with manual streaming
+  - Added `triggerAssistantResponse(prompt)` to trigger an assistant response via the `onMessage` hook without adding a user message to the thread or rendering a user bubble.
+  - Added `waitForReady()` that returns a Promise resolving when the webview has mounted and sent its ready event. Resolves immediately if already ready.
+  - Fixed race condition where `threadState` posted after `onMessage` could kill an active manual stream by moving the post to before `onMessage` is called.
+
+## 1.0.6
+
+### Patch Changes
+
+- Fix threadState killing active stream in manual mode by posting it before onMessage hook
+
 ## 1.0.5
 
 ### Patch Changes
